@@ -663,7 +663,7 @@ function Dashboard({user,board,onLogout}) {
           </div>
         </div>
         <div className="sidebar-section">메뉴</div>
-        <button className={`sidebar-nav-item ${view==="kanban"?"active":""}`} onClick={()=>setView("kanban")}>📋 칸반 보드</button>
+        <button className={`sidebar-nav-item ${view==="kanban"?"active":""}`} onClick={()=>setView("Dash Board")}>📋 Dash Board</button>
         <button className={`sidebar-nav-item ${view==="calendar"?"active":""}`} onClick={()=>setView("calendar")}>📅 달력 보기</button>
         <div className="sidebar-section">팀원 ({members.length})</div>
         {members.map(m=>(
@@ -676,7 +676,7 @@ function Dashboard({user,board,onLogout}) {
       <main className="main-content">
         <div className="page-header">
           <div>
-            <div className="page-title">{view==="kanban"?"📋 칸반 보드":"📅 달력"}</div>
+            <div className="page-title">{view==="kanban"?"📋 Dash Board":"📅 달력"}</div>
             <div className="page-sub">{board.name} · {tasks.length}개의 할 일</div>
           </div>
         </div>
