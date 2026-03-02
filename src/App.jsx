@@ -242,16 +242,19 @@ function OnboardingPage({user,onEnterBoard}) {
   const [boardName,setBoardName]=useState("");
   const [error,setError]=useState("");
   const [loading,setLoading]=useState(false);
+  const [myBoards,setMyBoards]=useState([]);
+  const [boardsLoading,setBoardsLoading]=useState(true);
 
   useEffect(()=>{
     (async()=>{
+      setBoardsLoading(true);
       const{data}=await supabase.from("board_members")
         .select("board_id,boards(id,name,invite_code)")
-        .eq("user_id",user.id).single();
-      if(data?.boards){
-        const b=data.boards;
-        onEnterBoard({id:b.id,name:b.name,inviteCode:b.invite_code});
+        .eq("user_id",user.id);
+      if(data&&data.length>0){
+        setMyBoards(data.map(d=>d.boards).filter(Boolean));
       }
+      setBoardsLoading(false);
     })();
   },[]);
 
@@ -285,8 +288,25 @@ function OnboardingPage({user,onEnterBoard}) {
         <div style={{fontSize:14,color:"var(--text2)",marginBottom:28}}>안녕하세요, {user.name}님 👋</div>
         {!mode?(
           <>
-            <div style={{fontSize:22,fontWeight:700,marginBottom:8}}>시작하기</div>
-            <div style={{color:"var(--text2)",marginBottom:24}}>새 팀 보드를 만들거나 기존 보드에 참여하세요.</div>
+            {boardsLoading?(
+              <div style={{textAlign:"center",color:"var(--text2)",padding:"20px 0"}}>⏳ 보드 목록 불러오는 중...</div>
+            ):myBoards.length>0&&(
+              <>
+                <div style={{fontSize:16,fontWeight:700,marginBottom:12}}>내 보드</div>
+                {myBoards.map(b=>(
+                  <button key={b.id} className="choice-btn" onClick={()=>onEnterBoard({id:b.id,name:b.name,inviteCode:b.invite_code})}>
+                    <span className="choice-icon">📋</span>
+                    <div>
+                      <div className="choice-label">{b.name}</div>
+                      <div className="choice-desc">초대코드: {b.invite_code}</div>
+                    </div>
+                  </button>
+                ))}
+                <div style={{borderTop:"1.5px solid var(--border)",margin:"20px 0"}}/>
+              </>
+            )}
+            <div style={{fontSize:myBoards.length>0?16:22,fontWeight:700,marginBottom:8}}>{myBoards.length>0?"다른 보드":"시작하기"}</div>
+            {myBoards.length===0&&<div style={{color:"var(--text2)",marginBottom:24}}>새 팀 보드를 만들거나 기존 보드에 참여하세요.</div>}
             <button className="choice-btn" onClick={()=>setMode("create")}>
               <span className="choice-icon">🚀</span>
               <div><div className="choice-label">새 팀 보드 만들기</div><div className="choice-desc">보드를 생성하고 팀원을 초대하세요</div></div>
