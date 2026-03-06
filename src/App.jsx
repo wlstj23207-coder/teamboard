@@ -12,6 +12,34 @@ const STATUS_CONFIG = {
   done:  { label:"완료됨",  color:"#10b981", bg:"#ecfdf5" },
 };
 
+// ── 한국 공휴일 ──
+const KR_HOLIDAYS = {
+  "01-01":"신정","03-01":"삼일절","05-05":"어린이날","06-06":"현충일",
+  "08-15":"광복절","10-03":"개천절","10-09":"한글날","12-25":"크리스마스",
+  // 2025
+  "2025-01-28":"설날","2025-01-29":"설날(연휴)","2025-01-30":"설날(연휴)",
+  "2025-05-05":"어린이날/부처님오신날","2025-05-06":"대체공휴일",
+  "2025-09-06":"추석(연휴)","2025-09-07":"추석","2025-09-08":"추석(연휴)",
+  "2025-10-06":"대체공휴일",
+  // 2026
+  "2026-01-28":"설날(연휴)","2026-01-29":"설날","2026-01-30":"설날(연휴)",
+  "2026-03-02":"대체공휴일",
+  "2026-05-24":"부처님오신날","2026-05-25":"대체공휴일",
+  "2026-09-24":"추석(연휴)","2026-09-25":"추석","2026-09-26":"추석(연휴)",
+  "2026-10-05":"대체공휴일",
+  "2026-12-25":"크리스마스",
+};
+const isHoliday=(year,month,day)=>{
+  const mmdd=`${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+  const full=`${year}-${mmdd}`;
+  return KR_HOLIDAYS[full]||KR_HOLIDAYS[mmdd]||null;
+};
+const isRedDay=(year,month,day)=>{
+  const date=new Date(year,month,day);
+  return date.getDay()===0||!!isHoliday(year,month,day);
+};
+
+
 function generateInviteCode() { return String(Math.floor(100000+Math.random()*900000)); }
 function formatDate(s) { if(!s)return""; return new Date(s).toLocaleDateString("ko-KR",{month:"short",day:"numeric"}); }
 function isToday(s) { return new Date(s).toDateString()===new Date().toDateString(); }
@@ -79,7 +107,7 @@ const css = `
   .member-name{font-size:13px;color:#c4c0e8;}
   .sidebar-footer{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);}
   .main-content{flex:1;overflow-y:auto;padding:32px;}
-  .content-layout{display:flex;gap:20px;}
+  .content-layout{display:flex;gap:24px;}
   .content-main{flex:1;min-width:0;}
   .right-panel{width:320px;flex-shrink:0;}
   .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
@@ -149,6 +177,13 @@ const css = `
   .day-task-name{font-size:12px;font-weight:600;color:var(--text);}
   .day-task-meta{font-size:11px;color:var(--text2);margin-top:3px;}
   .no-tasks-msg{font-size:12px;color:var(--text2);text-align:center;padding:12px 0;}
+  .mini-cal-day.is-holiday{color:#ef4444;}
+  .mini-cal-day.is-holiday.is-today{color:#fff;}
+  .mini-cal-day-label.is-sunday{color:#ef4444;}
+  .calendar-day.is-holiday .calendar-day-num{color:#ef4444;}
+  .calendar-day.is-holiday.today .calendar-day-num{color:#fff;}
+  .calendar-day{cursor:pointer;transition:background .1s;}
+  .calendar-day:hover{background:#f3f2ff;}
   .notice-box{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border:1.5px solid var(--border);margin-top:16px;}
   .notice-box-title{font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text);}
   .notice-textarea{width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--bg);resize:none;line-height:1.6;min-height:72px;max-height:160px;overflow-y:auto;display:block;box-sizing:border-box;}
@@ -465,7 +500,7 @@ function TaskCard({task,onEdit,onDragStart}) {
   );
 }
 
-function MiniCalendar({tasks}) {
+function MiniCalendar({tasks,onAddTask}) {
   const today=new Date();
   const todayStr=today.toISOString().slice(0,10);
   const [year,setYear]=useState(today.getFullYear());
@@ -481,6 +516,7 @@ function MiniCalendar({tasks}) {
   const getTasksForDate=dateStr=>tasks.filter(t=>t.due===dateStr);
   const selectedTasks=getTasksForDate(selected);
   const selectedLabel=new Date(selected+"T00:00:00").toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"});
+  const holidayName=isHoliday(year,month,new Date(selected+"T00:00:00").getDate());
 
   return (
     <div className="mini-calendar">
@@ -490,8 +526,8 @@ function MiniCalendar({tasks}) {
         <button className="mini-cal-nav" onClick={()=>month===11?(setMonth(0),setYear(y=>y+1)):setMonth(m=>m+1)}>›</button>
       </div>
       <div className="mini-cal-grid">
-        {["일","월","화","수","목","금","토"].map(d=>(
-          <div key={d} className="mini-cal-day-label">{d}</div>
+        {["일","월","화","수","목","금","토"].map((d,di)=>(
+          <div key={d} className={`mini-cal-day-label${di===0?" is-sunday":""}`}>{d}</div>
         ))}
         {cells.map((day,i)=>{
           if(!day) return <div key={i} className="mini-cal-day empty"/>;
@@ -499,9 +535,11 @@ function MiniCalendar({tasks}) {
           const isTod=today.getDate()===day&&today.getMonth()===month&&today.getFullYear()===year;
           const isSel=selected===dateStr;
           const hasTasks=getTasksForDate(dateStr).length>0;
+          const red=isRedDay(year,month,day);
+          const hName=isHoliday(year,month,day);
           return (
-            <div key={i}
-              className={`mini-cal-day${isTod?" is-today":""}${isSel?" is-selected":""}`}
+            <div key={i} title={hName||undefined}
+              className={`mini-cal-day${isTod?" is-today":""}${isSel?" is-selected":""}${red?" is-holiday":""}`}
               onClick={()=>setSelected(dateStr)}>
               {day}
               {hasTasks&&<div className="mini-cal-dot"/>}
@@ -510,7 +548,14 @@ function MiniCalendar({tasks}) {
         })}
       </div>
       <div className="day-tasks-panel">
-        <div className="day-tasks-label">📌 {selectedLabel}</div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+          <div className="day-tasks-label" style={{marginBottom:0}}>
+            📌 {selectedLabel}
+            {holidayName&&<span style={{marginLeft:6,fontSize:11,color:"#ef4444",fontWeight:600}}>{holidayName}</span>}
+          </div>
+          {onAddTask&&<button className="btn btn-primary btn-sm" style={{marginTop:0,padding:"4px 10px",fontSize:12}}
+            onClick={()=>onAddTask(selected)}>+ 추가</button>}
+        </div>
         {selectedTasks.length===0
           ?<div className="no-tasks-msg">업무가 없어요</div>
           :selectedTasks.map(t=>{
@@ -609,7 +654,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser}) {
   );
 }
 
-function CalendarView({tasks}) {
+function CalendarView({tasks,onAddTask}) {
   const today=new Date();
   const [year,setYear]=useState(today.getFullYear());
   const [month,setMonth]=useState(today.getMonth());
@@ -647,16 +692,24 @@ function CalendarView({tasks}) {
           <button className="btn btn-ghost btn-sm" onClick={()=>month===11?(setMonth(0),setYear(y=>y+1)):setMonth(m=>m+1)}>→</button>
         </div>
         <div className="calendar-grid" style={{marginBottom:8}}>
-          {["일","월","화","수","목","금","토"].map(d=><div key={d} className="calendar-header-day">{d}</div>)}
+          {["일","월","화","수","목","금","토"].map((d,di)=>(
+            <div key={d} className="calendar-header-day" style={{color:di===0?"#ef4444":"inherit"}}>{d}</div>
+          ))}
         </div>
         <div className="calendar-grid">
           {cells.map((day,i)=>{
             if(!day)return<div key={i} className="calendar-day empty"/>;
             const dt=getDay(day);
             const isT=today.getDate()===day&&today.getMonth()===month&&today.getFullYear()===year;
+            const red=isRedDay(year,month,day);
+            const hName=isHoliday(year,month,day);
+            const dateStr=`${monthStr}-${String(day).padStart(2,"0")}`;
             return (
-              <div key={i} className={`calendar-day ${isT?"today":""}`}>
+              <div key={i} className={`calendar-day${isT?" today":""}${red?" is-holiday":""}`}
+                title={hName||undefined}
+                onClick={()=>onAddTask&&onAddTask(dateStr)}>
                 <div className="calendar-day-num">{day}</div>
+                {hName&&<div style={{fontSize:9,color:"#ef4444",marginTop:1,lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{hName}</div>}
                 {dt.slice(0,2).map(t=>{const s=STATUS_CONFIG[t.status];return<div key={t.id} className="calendar-task-dot" style={{background:s.bg,color:s.color}}>{t.title}</div>;})}
                 {dt.length>2&&<div style={{fontSize:10,color:"var(--text2)"}}>+{dt.length-2}개</div>}
               </div>
@@ -737,6 +790,7 @@ function Dashboard({user,board,onLogout}) {
   const [view,setView]=useState("kanban");
   const [toast,setToast]=useState(null);
   const [copied,setCopied]=useState(false);
+  const [calModalDate,setCalModalDate]=useState(null);
 
   useEffect(()=>{
     (async()=>{
@@ -800,14 +854,14 @@ function Dashboard({user,board,onLogout}) {
                 <KanbanView tasks={tasks} setTasks={setTasks} members={members} boardId={board.id} showToast={setToast} currentUser={user}/>
               </div>
               <div className="right-panel">
-                <MiniCalendar tasks={tasks}/>
+                <MiniCalendar tasks={tasks} onAddTask={date=>setCalModalDate(date)}/>
                 <NoticeBoard boardId={board.id} currentUser={user}/>
               </div>
             </>
           ):(
             <>
               <div className="content-main">
-                <CalendarView tasks={tasks}/>
+                <CalendarView tasks={tasks} onAddTask={date=>setCalModalDate(date)}/>
               </div>
               <div className="right-panel">
                 <NoticeBoard boardId={board.id} currentUser={user}/>
@@ -817,6 +871,19 @@ function Dashboard({user,board,onLogout}) {
         </div>
       </main>
       {toast&&<Toast msg={toast} onClose={()=>setToast(null)}/>}
+      {calModalDate&&members.length>0&&(
+        <TaskModal
+          task={{due:calModalDate,status:"todo",assignee:members[0]}}
+          members={members}
+          currentUser={user}
+          onSave={async(task)=>{
+            const{data}=await supabase.from("tasks").insert({board_id:board.id,title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||null,status:task.status,created_by:user.name}).select().single();
+            if(data)setTasks(p=>[...p,data]);
+          }}
+          onDelete={()=>{}}
+          onClose={()=>setCalModalDate(null)}
+        />
+      )}
     </div>
   );
 }
