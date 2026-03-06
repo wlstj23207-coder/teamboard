@@ -1,26 +1,57 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
-const { autoUpdater } = require('electron-updater')
-const path = require('path')
-
-function createWindow() {
-  const win = new BrowserWindow({
-    width: 1280, height: 800,
-    webPreferences: { nodeIntegration: false, contextIsolation: true }
-  })
-  win.loadFile(path.join(__dirname, '../dist/index.html'))
-
-  // 앱 시작 3초 후 업데이트 체크
-  setTimeout(() => autoUpdater.checkForUpdatesAndNotify(), 3000)
+{
+  "name": "teamboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "vite build && electron-builder",
+    "electron:release": "vite build && electron-builder --publish always"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
+    "electron-updater": "^6.3.9",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "concurrently": "^9.2.1",
+    "electron": "^40.8.0",
+    "electron-builder": "^26.8.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "vite": "^8.0.0-beta.13",
+    "wait-on": "^9.0.4"
+  },
+  "overrides": {
+    "vite": "^8.0.0-beta.13"
+  },
+  "build": {
+    "appId": "com.teamboard.app",
+    "productName": "TeamBoard",
+    "publish": {
+      "provider": "github",
+      "owner": "wlstj23207-coder",
+      "repo": "teamboard"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "files": ["dist/**/*", "electron/**/*"]
+  }
 }
-
-app.whenReady().then(createWindow)
-
-// 업데이트 발견 시
-autoUpdater.on('update-available', () => {
-  console.log('새 버전 발견, 다운로드 중...')
-})
-
-// 다운로드 완료 시 → 재시작하면 적용
-autoUpdater.on('update-downloaded', () => {
-  autoUpdater.quitAndInstall()
-})
