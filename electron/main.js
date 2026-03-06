@@ -9,18 +9,18 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
-    titleBarStyle: 'hiddenInset', // 맥 스타일
-    icon: path.join(__dirname, 'icon.png')
+    titleBarStyle: 'hiddenInset',
   })
 
-  if (process.env.NODE_ENV === 'development') {
-    win.loadURL('http://localhost:5173')
-  } else {
-    win.loadFile(path.join(__dirname, '../dist/index.html'))
-  }
+  win.loadFile(path.join(__dirname, '../dist/index.html'))
 }
 
 app.whenReady().then(createWindow)
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
