@@ -149,46 +149,6 @@ const css = `
   .day-task-name{font-size:12px;font-weight:600;color:var(--text);}
   .day-task-meta{font-size:11px;color:var(--text2);margin-top:3px;}
   .no-tasks-msg{font-size:12px;color:var(--text2);text-align:center;padding:12px 0;}
-  /* ── Mobile Responsive ── */
-  @media(max-width:768px){
-    .auth-card{padding:32px 24px;}
-    .onboarding-card{padding:32px 20px;}
-    .main-layout{flex-direction:column;height:auto;min-height:100vh;}
-    .sidebar{width:100%;flex-direction:row;flex-wrap:wrap;padding:12px 16px;gap:8px;align-items:center;position:sticky;top:0;z-index:50;}
-    .sidebar-logo{margin-bottom:0;font-size:16px;}
-    .board-info{display:none;}
-    .sidebar-section{display:none;}
-    .member-item{display:none;}
-    .sidebar-footer{margin-top:0;padding-top:0;border-top:none;}
-    .sidebar-nav-item{padding:7px 12px;font-size:13px;margin-bottom:0;}
-    .main-content{padding:16px;}
-    .content-layout{flex-direction:column;}
-    .right-panel{width:100%;}
-    .right-panel-row{flex-direction:column;}
-    .calendar-wrap{width:100%;}
-    .notice-wrap{width:100%;}
-    .kanban-board{grid-template-columns:1fr;gap:12px;}
-    .kanban-col{min-height:auto;}
-    .stat-grid{grid-template-columns:repeat(3,1fr);gap:8px;}
-    .stat-card{padding:14px 10px;}
-    .stat-num{font-size:24px;}
-    .stat-label{font-size:11px;}
-    .page-header{margin-bottom:16px;}
-    .page-title{font-size:18px;}
-    .modal{padding:24px 20px;max-width:100%;margin:0 16px;}
-    .mini-calendar{margin-top:0;}
-    .notice-board{margin-top:0;}
-    .col-droppable{min-height:60px;}
-    .task-card{cursor:pointer;}
-    .kanban-board .col-droppable{overflow:visible;}
-  }
-  @media(max-width:480px){
-    .stat-grid{grid-template-columns:repeat(3,1fr);gap:6px;}
-    .stat-num{font-size:20px;}
-    .main-content{padding:12px;}
-    .auth-card{padding:28px 16px;}
-  }
-
 `;
 
 function Avatar({name}) {
@@ -391,53 +351,32 @@ function OnboardingPage({user,onEnterBoard}) {
   );
 }
 
-function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
+function TaskModal({task,members,onSave,onDelete,onClose}) {
   const [title,setTitle]=useState(task?.title||"");
-  const [description,setDescription]=useState(task?.description||"");
   const [assignee,setAssignee]=useState(task?.assignee||members[0]||"");
   const [due,setDue]=useState(task?.due||"");
   const [status,setStatus]=useState(task?.status||"todo");
   const [confirmDelete,setConfirmDelete]=useState(false);
 
-  const isNew=!task?.id;
-  const isCreator=isNew||task?.created_by===currentUser.name;
-  const isAssignee=task?.assignee===currentUser.name;
-  const canDelete=!isNew&&(isCreator||(isAssignee&&task?.status==="done"));
-
   return (
     <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
-        <div className="modal-title">{isNew?"새 일정":"일정 수정"}</div>
-        <div className="field">
-          <label>제목</label>
-          <input placeholder="일정 제목을 입력하세요" value={title} onChange={e=>setTitle(e.target.value)} autoFocus disabled={!!(task?.id&&!isCreator)}/>
-        </div>
-        <div className="field">
-          <label>업무 내용</label>
-          <textarea rows={3} placeholder="업무 내용을 간략히 입력하세요" value={description}
-            onChange={e=>setDescription(e.target.value)} disabled={!!(task?.id&&!isCreator)}
-            style={{width:"100%",padding:"12px 16px",border:"2px solid var(--border)",borderRadius:10,fontSize:14,fontFamily:"inherit",outline:"none",background:"var(--bg)",resize:"none",lineHeight:1.6}}/>
-        </div>
+        <div className="modal-title">{task?.id?"할 일 수정":"새 할 일"}</div>
+        <div className="field"><label>제목</label><input placeholder="할 일을 입력하세요" value={title} onChange={e=>setTitle(e.target.value)} autoFocus/></div>
         <div className="field"><label>담당자</label>
           <select className="select" value={assignee} onChange={e=>setAssignee(e.target.value)}>
             {members.map(m=><option key={m} value={m}>{m}</option>)}
           </select>
         </div>
         <div className="field"><label>마감일</label>
-          <input type="date" value={due} onChange={e=>setDue(e.target.value)} disabled={!!(task?.id&&!isCreator)}
+          <input type="date" value={due} onChange={e=>setDue(e.target.value)}
             style={{width:"100%",padding:"12px 16px",border:"2px solid var(--border)",borderRadius:10,fontSize:15,fontFamily:"inherit",outline:"none",background:"var(--bg)"}}/>
         </div>
         <div className="field"><label>상태</label>
-          <select className="select" value={status} onChange={e=>setStatus(e.target.value)} disabled={!!(task?.id&&!isAssignee)}>
+          <select className="select" value={status} onChange={e=>setStatus(e.target.value)}>
             {Object.entries(STATUS_CONFIG).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
           </select>
-          {task?.id&&!isAssignee&&<div style={{fontSize:11,color:"var(--text2)",marginTop:4}}>* 담당자만 상태를 변경할 수 있어요</div>}
         </div>
-        {task?.id&&!isCreator&&!isAssignee&&(
-          <div style={{background:"#f3f2ff",borderRadius:10,padding:"12px 14px",marginTop:4,fontSize:13,color:"var(--text2)"}}>
-            👀 이 일정은 보기만 가능해요 (등록자: {task.created_by})
-          </div>
-        )}
         {confirmDelete?(
           <div style={{background:"#fef2f2",border:"1.5px solid #fecaca",borderRadius:10,padding:"14px 16px",marginTop:16}}>
             <div style={{fontSize:14,fontWeight:600,color:"#dc2626",marginBottom:10}}>정말 삭제할까요?</div>
@@ -448,21 +387,20 @@ function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
           </div>
         ):(
           <div className="modal-actions">
-            {canDelete&&<button className="btn btn-sm" style={{background:"#fef2f2",color:"#dc2626",marginRight:"auto"}} onClick={()=>setConfirmDelete(true)}>🗑 삭제</button>}
-            <button className="btn btn-secondary btn-sm" onClick={onClose}>닫기</button>
-            {(isNew||isCreator||isAssignee)&&(
-              <button className="btn btn-primary btn-sm" style={{marginTop:0}} onClick={()=>{
-                if(!title.trim())return;
-                onSave({...task,id:task?.id,title,description,assignee,due,status,created_by:task?.created_by||currentUser.name});
-                onClose();
-              }}>저장</button>
-            )}
+            {task?.id&&<button className="btn btn-sm" style={{background:"#fef2f2",color:"#dc2626",marginRight:"auto"}} onClick={()=>setConfirmDelete(true)}>🗑 삭제</button>}
+            <button className="btn btn-secondary btn-sm" onClick={onClose}>취소</button>
+            <button className="btn btn-primary btn-sm" style={{marginTop:0}} onClick={()=>{
+              if(!title.trim())return;
+              onSave({...task,id:task?.id,title,assignee,due,status});
+              onClose();
+            }}>저장</button>
           </div>
         )}
       </div>
     </div>
   );
 }
+
 function TaskCard({task,onEdit,onDragStart}) {
   const getDueClass=()=>{
     if(!task.due)return"normal";
@@ -545,7 +483,7 @@ function MiniCalendar({tasks}) {
   );
 }
 
-function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser}) {
+function KanbanView({tasks,setTasks,members,boardId,showToast}) {
   const [modalOpen,setModalOpen]=useState(false);
   const [editingTask,setEditingTask]=useState(null);
   const [dragId,setDragId]=useState(null);
@@ -557,7 +495,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser}) {
       setTasks(p=>p.map(t=>t.id===task.id?data:t));
       showToast(task.title+" 저장됨");
     } else {
-      const{data}=await supabase.from("tasks").insert({board_id:boardId,title:task.title,assignee:task.assignee,due:task.due||null,status:task.status,created_by:currentUser.name}).select().single();
+      const{data}=await supabase.from("tasks").insert({board_id:boardId,title:task.title,assignee:task.assignee,due:task.due||null,status:task.status}).select().single();
       setTasks(p=>[...p,data]);
       showToast(task.title+" 추가됨");
     }
@@ -572,11 +510,6 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser}) {
   const handleDrop=async(e,status)=>{
     e.preventDefault();
     if(!dragId)return;
-    const dragged=tasks.find(t=>t.id===dragId);
-    if(dragged&&dragged.assignee!==currentUser.name){
-      showToast("담당자만 상태를 변경할 수 있어요");
-      setDragId(null);setDragOver(null);return;
-    }
     await supabase.from("tasks").update({status}).eq("id",dragId);
     setTasks(p=>p.map(t=>t.id===dragId?{...t,status}:t));
     showToast(`"${STATUS_CONFIG[status].label}"로 이동됨`);
@@ -618,7 +551,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser}) {
         })}
       </div>
       {modalOpen&&(
-        <TaskModal task={editingTask} members={members} currentUser={currentUser}
+        <TaskModal task={editingTask} members={members}
           onSave={saveTask} onDelete={deleteTask}
           onClose={()=>{setModalOpen(false);setEditingTask(null);}}/>
       )}
@@ -685,71 +618,6 @@ function CalendarView({tasks}) {
   );
 }
 
-function NoticeBoard({boardId,currentUser}) {
-  const [notices,setNotices]=useState([]);
-  const [input,setInput]=useState("");
-  const [loading,setLoading]=useState(false);
-
-  useEffect(()=>{
-    (async()=>{
-      const{data}=await supabase.from("notices").select().eq("board_id",boardId).order("created_at");
-      if(data)setNotices(data);
-    })();
-    const sub=supabase.channel("notices:"+boardId)
-      .on("postgres_changes",{event:"*",schema:"public",table:"notices",filter:`board_id=eq.${boardId}`},
-        payload=>{
-          if(payload.eventType==="INSERT")setNotices(p=>[...p,payload.new]);
-          if(payload.eventType==="UPDATE")setNotices(p=>p.map(n=>n.id===payload.new.id?payload.new:n));
-          if(payload.eventType==="DELETE")setNotices(p=>p.filter(n=>n.id!==payload.old.id));
-        }).subscribe();
-    return()=>{supabase.removeChannel(sub);};
-  },[boardId]);
-
-  const handleAdd=async()=>{
-    const text=input.trim();
-    if(!text||loading)return;
-    setLoading(true);
-    const{error}=await supabase.from("notices").insert({board_id:boardId,text,author:currentUser.name,done:false});
-    if(!error)setInput("");
-    setLoading(false);
-  };
-
-  return (
-    <div style={{background:"#fff",borderRadius:"var(--radius)",padding:20,boxShadow:"var(--shadow)",border:"1.5px solid var(--border)"}}>
-      <div style={{fontSize:13,fontWeight:700,marginBottom:14,color:"var(--text)"}}>📌 공통 중점 사항</div>
-      <div style={{display:"flex",gap:8,marginBottom:14}}>
-        <input style={{flex:1,padding:"9px 12px",border:"2px solid var(--border)",borderRadius:8,fontSize:13,fontFamily:"inherit",outline:"none",background:"var(--bg)"}}
-          placeholder="공지 입력 후 Enter" value={input}
-          onChange={e=>setInput(e.target.value)}
-          onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing){e.preventDefault();handleAdd();}}}/>
-        <button className="btn btn-primary btn-sm" style={{marginTop:0,whiteSpace:"nowrap"}}
-          disabled={loading||!input.trim()} onClick={handleAdd}>등록</button>
-      </div>
-      {notices.length===0
-        ?<div style={{fontSize:12,color:"var(--text2)",textAlign:"center",padding:"12px 0"}}>공지가 없어요</div>
-        :notices.map(n=>(
-          <div key={n.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
-            <div style={{flex:1}}>
-              <div style={{fontSize:13,lineHeight:1.5,color:n.done?"var(--text2)":"var(--text)",textDecoration:n.done?"line-through":"none",wordBreak:"break-all"}}>{n.text}</div>
-              <div style={{fontSize:11,color:"var(--text2)",marginTop:2}}>{n.author} · {new Date(n.created_at).toLocaleDateString("ko-KR",{month:"short",day:"numeric"})}</div>
-            </div>
-            <div style={{display:"flex",gap:4,flexShrink:0,marginTop:2}}>
-              <button style={{background:"transparent",border:"none",cursor:"pointer",fontSize:14,padding:"3px 6px",borderRadius:5,color:"var(--text2)"}}
-                onClick={async()=>await supabase.from("notices").update({done:!n.done}).eq("id",n.id)}>
-                {n.done?"↩":"✓"}
-              </button>
-              {n.author===currentUser.name&&(
-                <button style={{background:"transparent",border:"none",cursor:"pointer",fontSize:14,padding:"3px 6px",borderRadius:5,color:"var(--text2)"}}
-                  onClick={async()=>await supabase.from("notices").delete().eq("id",n.id)}>🗑</button>
-              )}
-            </div>
-          </div>
-        ))
-      }
-    </div>
-  );
-}
-
 function Dashboard({user,board,onLogout}) {
   const [tasks,setTasks]=useState([]);
   const [members,setMembers]=useState([]);
@@ -795,7 +663,7 @@ function Dashboard({user,board,onLogout}) {
           </div>
         </div>
         <div className="sidebar-section">메뉴</div>
-        <button className={`sidebar-nav-item ${view==="kanban"?"active":""}`} onClick={()=>setView("Dash Board")}>📋 Dash Board</button>
+        <button className={`sidebar-nav-item ${view==="kanban"?"active":""}`} onClick={()=>setView("kanban")}>📋 Dash Board</button>
         <button className={`sidebar-nav-item ${view==="calendar"?"active":""}`} onClick={()=>setView("calendar")}>📅 달력 보기</button>
         <div className="sidebar-section">팀원 ({members.length})</div>
         {members.map(m=>(
@@ -815,16 +683,11 @@ function Dashboard({user,board,onLogout}) {
         <div className="content-layout">
           <div className="content-main">
             {view==="kanban"
-              ?<KanbanView tasks={tasks} setTasks={setTasks} members={members} boardId={board.id} showToast={setToast} currentUser={user}/>
+              ?<KanbanView tasks={tasks} setTasks={setTasks} members={members} boardId={board.id} showToast={setToast}/>
               :<CalendarView tasks={tasks}/>}
           </div>
-          <div className="right-panel-row">
-            <div className="calendar-wrap">
-              <MiniCalendar tasks={tasks}/>
-            </div>
-            <div style={{flex:1,minWidth:0}}>
-              <NoticeBoard boardId={board.id} currentUser={user}/>
-            </div>
+          <div className="right-panel">
+            <MiniCalendar tasks={tasks}/>
           </div>
         </div>
       </main>
@@ -842,13 +705,6 @@ export default function App() {
     const style=document.createElement("style");
     style.textContent=css;
     document.head.appendChild(style);
-    // viewport meta for mobile
-    if(!document.querySelector("meta[name=viewport]")){
-      const meta=document.createElement("meta");
-      meta.name="viewport";
-      meta.content="width=device-width,initial-scale=1,maximum-scale=1";
-      document.head.appendChild(meta);
-    }
 
     supabase.auth.getSession().then(({data})=>{
       if(data.session?.user){
