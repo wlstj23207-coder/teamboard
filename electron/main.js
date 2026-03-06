@@ -9,7 +9,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'default',
   })
 
   win.loadFile(path.join(__dirname, '../dist/index.html'))
