@@ -79,16 +79,13 @@ const css = `
   .member-name{font-size:13px;color:#c4c0e8;}
   .sidebar-footer{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);}
   .main-content{flex:1;overflow-y:auto;padding:32px;}
-  .content-layout{display:flex;gap:24px;}
+  .content-layout{display:flex;gap:20px;}
   .content-main{flex:1;min-width:0;}
-  .right-panel{width:700px;flex-shrink:0;}
-  .right-panel-row{display:flex;gap:16px;align-items:flex-start;}
-  .calendar-wrap{width:320px;flex-shrink:0;}
-  .notice-wrap{flex:1;min-width:0;}
+  .right-panel{width:320px;flex-shrink:0;}
   .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
   .page-title{font-size:24px;font-weight:700;}
   .page-sub{font-size:14px;color:var(--text2);margin-top:2px;}
-  .kanban-board{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start;}
+  .kanban-board{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start;min-height:600px;}
   .kanban-col{background:var(--surface2);border-radius:var(--radius);padding:16px;min-height:500px;}
   .col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
   .col-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;}
@@ -96,12 +93,12 @@ const css = `
   .col-count{background:rgba(0,0,0,0.06);border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600;}
   .col-droppable{min-height:400px;}
   .col-droppable.drag-over{background:rgba(99,102,241,0.05);border-radius:10px;}
-  .task-card{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(99,102,241,0.07);cursor:grab;transition:all .15s;border:1.5px solid var(--border);user-select:none;}
+  .task-card{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:grab;transition:all .15s;border:2px solid transparent;user-select:none;}
   .task-card:hover{box-shadow:0 4px 16px rgba(99,102,241,0.12);border-color:var(--border);transform:translateY(-1px);}
-  .task-title{font-size:13px;font-weight:600;margin-bottom:8px;line-height:1.5;word-break:break-all;}
+  .task-title{font-size:14px;font-weight:600;margin-bottom:10px;line-height:1.4;}
   .task-meta{display:flex;align-items:center;justify-content:space-between;}
   .task-assignee{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);}
-  .task-due{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+  .task-due{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
   .task-due.today{background:#fef2f2;color:#dc2626;}
   .task-due.week{background:#fffbeb;color:#d97706;}
   .task-due.overdue{background:#fef2f2;color:#dc2626;}
@@ -152,9 +149,9 @@ const css = `
   .day-task-name{font-size:12px;font-weight:600;color:var(--text);}
   .day-task-meta{font-size:11px;color:var(--text2);margin-top:3px;}
   .no-tasks-msg{font-size:12px;color:var(--text2);text-align:center;padding:12px 0;}
-  .notice-box{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border:1.5px solid var(--border);height:100%;}
+  .notice-box{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border:1.5px solid var(--border);margin-top:16px;}
   .notice-box-title{font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text);}
-  .notice-textarea{width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--bg);resize:none;line-height:1.6;min-height:72px;max-height:160px;overflow-y:auto;display:block;}
+  .notice-textarea{width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--bg);resize:none;line-height:1.6;min-height:72px;max-height:160px;overflow-y:auto;display:block;box-sizing:border-box;}
   .notice-textarea:focus{border-color:var(--accent);}
   .notice-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
   .notice-item:last-child{border-bottom:none;}
@@ -163,29 +160,21 @@ const css = `
   .notice-meta{font-size:11px;color:var(--text2);margin-top:3px;}
   .notice-btn{background:transparent;border:none;cursor:pointer;font-size:14px;padding:3px 6px;border-radius:5px;color:var(--text2);}
   .notice-btn:hover{background:var(--surface2);}
-  .kanban-col{background:var(--surface2);border-radius:var(--radius);padding:16px;min-height:400px;}
   @media(max-width:768px){
-    .auth-card{padding:32px 24px;} .onboarding-card{padding:32px 20px;}
     .main-layout{flex-direction:column;height:auto;min-height:100vh;}
-    .sidebar{width:100%;flex-direction:row;flex-wrap:wrap;padding:10px 14px;gap:6px;align-items:center;position:sticky;top:0;z-index:50;overflow-x:auto;}
+    .sidebar{width:100%;flex-direction:row;flex-wrap:wrap;padding:10px 14px;gap:6px;align-items:center;position:sticky;top:0;z-index:50;}
     .sidebar-logo{margin-bottom:0;font-size:15px;margin-right:8px;} .board-info{display:none;}
     .sidebar-section{display:none;} .member-item{display:none;}
     .sidebar-footer{margin-top:0;padding-top:0;border-top:none;margin-left:auto;}
     .sidebar-nav-item{padding:6px 10px;font-size:13px;margin-bottom:0;white-space:nowrap;}
-    .main-content{padding:14px;overflow-y:auto;} .content-layout{flex-direction:column;}
-    .right-panel-row{flex-direction:column;} .right-panel{width:100%!important;}
-    .calendar-wrap{width:100%;} .notice-wrap{width:100%;margin-top:16px;}
-    .kanban-board{grid-template-columns:1fr;gap:10px;} .kanban-col{min-height:auto;}
-    .stat-grid{gap:8px;} .stat-card{padding:12px 10px;} .stat-num{font-size:22px;} .stat-label{font-size:11px;}
-    .page-title{font-size:17px;} .page-header{margin-bottom:14px;}
-    .modal-overlay{padding:12px;align-items:flex-end;}
+    .main-content{padding:14px;} .content-layout{flex-direction:column;}
+    .right-panel{width:100%!important;}
+    .kanban-board{grid-template-columns:1fr;gap:10px;min-height:auto;}
+    .stat-grid{gap:8px;} .stat-card{padding:12px 10px;} .stat-num{font-size:22px;}
+    .page-title{font-size:17px;} .modal-overlay{padding:12px;align-items:flex-end;}
     .modal{padding:24px 18px;border-radius:16px 16px 0 0;max-width:100%;margin:0;}
-    .content-main{min-width:0;}
   }
-  @media(max-width:480px){
-    .main-content{padding:10px;} .auth-card{padding:24px 14px;}
-    .stat-num{font-size:20px;} .sidebar{padding:8px 10px;}
-  }
+  @media(max-width:480px){.main-content{padding:10px;}.stat-num{font-size:20px;}}
 
 `;
 
@@ -410,7 +399,7 @@ function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
         <div className="field"><label>업무 내용 <span style={{fontWeight:400,color:"var(--text2)"}}>(선택)</span></label>
           <textarea rows={3} placeholder="업무 내용을 간략히 입력하세요" value={description}
             onChange={e=>setDescription(e.target.value)} disabled={!!(task?.id&&!isCreator)}
-            style={{width:"100%",padding:"12px 16px",border:"2px solid var(--border)",borderRadius:10,fontSize:14,fontFamily:"inherit",outline:"none",background:"var(--bg)",resize:"none",lineHeight:1.6}}/>
+            style={{width:"100%",padding:"12px 16px",border:"2px solid var(--border)",borderRadius:10,fontSize:14,fontFamily:"inherit",outline:"none",background:"var(--bg)",resize:"none",lineHeight:1.6,boxSizing:"border-box"}}/>
         </div>
         <div className="field"><label>담당자</label>
           <select className="select" value={assignee} onChange={e=>setAssignee(e.target.value)}>
@@ -465,18 +454,12 @@ function TaskCard({task,onEdit,onDragStart}) {
     if(isThisWeek(task.due))return"week";
     return"normal";
   };
-  const dueClass=getDueClass();
   return (
     <div className="task-card" draggable onDragStart={e=>onDragStart(e,task.id)} onClick={()=>onEdit(task)}>
       <div className="task-title">{task.title}</div>
-      {task.description&&<div style={{fontSize:12,color:"var(--text2)",marginBottom:8,lineHeight:1.5,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{task.description}</div>}
       <div className="task-meta">
-        <div className="task-assignee"><Avatar name={task.assignee}/><span style={{fontSize:12}}>{task.assignee}</span></div>
-        {task.due&&(
-          <span className={`task-due ${dueClass}`}>
-            {isToday(task.due)?"⚡ 오늘":isOverdue(task.due)&&task.status!=="done"?"⚠ "+formatDate(task.due):formatDate(task.due)}
-          </span>
-        )}
+        <div className="task-assignee"><Avatar name={task.assignee}/><span>{task.assignee}</span></div>
+        {task.due&&<span className={`task-due ${getDueClass()}`}>{isToday(task.due)?"⚡ 오늘":formatDate(task.due)}</span>}
       </div>
     </div>
   );
@@ -811,15 +794,26 @@ function Dashboard({user,board,onLogout}) {
           </div>
         </div>
         <div className="content-layout">
-          <div className="content-main">
-            {view==="kanban"
-              ?<KanbanView tasks={tasks} setTasks={setTasks} members={members} boardId={board.id} showToast={setToast} currentUser={user}/>
-              :<CalendarView tasks={tasks}/>}
-          </div>
-          <div className="right-panel-row">
-            <div className="calendar-wrap"><MiniCalendar tasks={tasks}/></div>
-            <div className="notice-wrap"><NoticeBoard boardId={board.id} currentUser={user}/></div>
-          </div>
+          {view==="kanban"?(
+            <>
+              <div className="content-main">
+                <KanbanView tasks={tasks} setTasks={setTasks} members={members} boardId={board.id} showToast={setToast} currentUser={user}/>
+              </div>
+              <div className="right-panel">
+                <MiniCalendar tasks={tasks}/>
+                <NoticeBoard boardId={board.id} currentUser={user}/>
+              </div>
+            </>
+          ):(
+            <>
+              <div className="content-main">
+                <CalendarView tasks={tasks}/>
+              </div>
+              <div className="right-panel">
+                <NoticeBoard boardId={board.id} currentUser={user}/>
+              </div>
+            </>
+          )}
         </div>
       </main>
       {toast&&<Toast msg={toast} onClose={()=>setToast(null)}/>}
