@@ -154,14 +154,13 @@ const css = `
   .no-tasks-msg{font-size:12px;color:var(--text2);text-align:center;padding:12px 0;}
   .notice-box{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border:1.5px solid var(--border);}
   .notice-box-title{font-size:13px;font-weight:700;margin-bottom:14px;color:var(--text);}
-  .notice-input-row{display:flex;gap:8px;margin-bottom:14px;}
-  .notice-input{flex:1;padding:9px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--bg);}
-  .notice-input:focus{border-color:var(--accent);}
-  .notice-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .notice-textarea{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:var(--bg);resize:none;line-height:1.6;min-height:80px;max-height:200px;overflow-y:auto;}
+  .notice-textarea:focus{border-color:var(--accent);}
+  .notice-item{display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid var(--border);}
   .notice-item:last-child{border-bottom:none;}
-  .notice-text{flex:1;font-size:13px;line-height:1.5;color:var(--text);word-break:break-all;}
+  .notice-text{flex:1;font-size:13px;line-height:1.6;color:var(--text);word-break:break-all;white-space:pre-wrap;}
   .notice-text.done{text-decoration:line-through;color:var(--text2);}
-  .notice-meta{font-size:11px;color:var(--text2);margin-top:2px;}
+  .notice-meta{font-size:11px;color:var(--text2);margin-top:4px;}
   .notice-btn{background:transparent;border:none;cursor:pointer;font-size:14px;padding:3px 6px;border-radius:5px;color:var(--text2);}
   .notice-btn:hover{background:var(--surface2);}
   @media(max-width:768px){
@@ -701,34 +700,42 @@ function NoticeBoard({boardId,currentUser}) {
   return (
     <div className="notice-box">
       <div className="notice-box-title">📌 공통 중점 사항</div>
-      <div className="notice-input-row">
-        <input className="notice-input" placeholder="공지 입력 후 Enter" value={input}
-          onChange={e=>setInput(e.target.value)}
-          onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing){e.preventDefault();handleAdd();}}}/>
-        <button className="btn btn-primary btn-sm" style={{marginTop:0,whiteSpace:"nowrap"}}
-          disabled={loading||!input.trim()} onClick={handleAdd}>등록</button>
+      <textarea
+        className="notice-textarea"
+        placeholder={"내용 입력 후 등록 버튼 클릭\n(Shift+Enter로 줄바꿈)"}
+        value={input}
+        onChange={e=>setInput(e.target.value)}
+        onKeyDown={e=>{
+          if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing){
+            e.preventDefault();handleAdd();
+          }
+        }}
+      />
+      <button className="btn btn-primary btn-sm" style={{marginTop:8,width:"100%"}}
+        disabled={loading||!input.trim()} onClick={handleAdd}>등록</button>
+      <div style={{marginTop:12}}>
+        {notices.length===0
+          ?<div style={{fontSize:12,color:"var(--text2)",textAlign:"center",padding:"8px 0"}}>공지가 없어요</div>
+          :notices.map(n=>(
+            <div key={n.id} className="notice-item">
+              <div style={{flex:1}}>
+                <div className={"notice-text"+(n.done?" done":"")}>{n.text}</div>
+                <div className="notice-meta">{n.author} · {new Date(n.created_at).toLocaleDateString("ko-KR",{month:"short",day:"numeric"})}</div>
+              </div>
+              <div style={{display:"flex",gap:4,flexShrink:0,marginTop:2}}>
+                <button className="notice-btn" title={n.done?"완료 취소":"완료 처리"}
+                  onClick={async()=>await supabase.from("notices").update({done:!n.done}).eq("id",n.id)}>
+                  {n.done?"↩":"✓"}
+                </button>
+                {n.author===currentUser.name&&(
+                  <button className="notice-btn" title="삭제"
+                    onClick={async()=>await supabase.from("notices").delete().eq("id",n.id)}>🗑</button>
+                )}
+              </div>
+            </div>
+          ))
+        }
       </div>
-      {notices.length===0
-        ?<div style={{fontSize:12,color:"var(--text2)",textAlign:"center",padding:"12px 0"}}>공지가 없어요</div>
-        :notices.map(n=>(
-          <div key={n.id} className="notice-item">
-            <div style={{flex:1}}>
-              <div className={"notice-text"+(n.done?" done":"")}>{n.text}</div>
-              <div className="notice-meta">{n.author} · {new Date(n.created_at).toLocaleDateString("ko-KR",{month:"short",day:"numeric"})}</div>
-            </div>
-            <div style={{display:"flex",gap:4,flexShrink:0,marginTop:2}}>
-              <button className="notice-btn" title={n.done?"완료 취소":"완료 처리"}
-                onClick={async()=>await supabase.from("notices").update({done:!n.done}).eq("id",n.id)}>
-                {n.done?"↩":"✓"}
-              </button>
-              {n.author===currentUser.name&&(
-                <button className="notice-btn" title="삭제"
-                  onClick={async()=>await supabase.from("notices").delete().eq("id",n.id)}>🗑</button>
-              )}
-            </div>
-          </div>
-        ))
-      }
     </div>
   );
 }
