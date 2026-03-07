@@ -898,6 +898,17 @@ function Dashboard({user,board,onLogout}) {
   const [calYear,setCalYear]=useState(new Date().getFullYear());
   const [calMonth,setCalMonth]=useState(new Date().getMonth());
   const [calModalDate,setCalModalDate]=useState(null);
+  const [editingName,setEditingName]=useState(false);
+  const [nameInput,setNameInput]=useState(user.name);
+
+  const handleNameSave=async()=>{
+    const newName=nameInput.trim();
+    if(!newName||newName===user.name){setEditingName(false);return;}
+    await supabase.from("board_members").update({name:newName}).eq("board_id",board.id).eq("user_id",user.id);
+    user.name=newName;
+    setMembers(p=>p.map(m=>m===user.name?newName:m));
+    setEditingName(false);
+  };
 
   useEffect(()=>{
     (async()=>{
@@ -943,7 +954,24 @@ function Dashboard({user,board,onLogout}) {
         {members.map(m=>(
           <div key={m} className="member-item">
             <Avatar name={m}/>
-            <span className="member-name">{m===user.name?`${m} (나)`:m}</span>
+            {m===user.name?(
+              editingName?(
+                <div style={{display:"flex",gap:4,alignItems:"center",flex:1}}>
+                  <input value={nameInput} onChange={e=>setNameInput(e.target.value)}
+                    onKeyDown={e=>{if(e.key==="Enter")handleNameSave();if(e.key==="Escape")setEditingName(false);}}
+                    autoFocus
+                    style={{flex:1,background:"rgba(255,255,255,0.15)",border:"1px solid rgba(74,222,128,0.5)",borderRadius:6,padding:"3px 7px",color:"#fff",fontSize:13,outline:"none",width:"80px"}}/>
+                  <button onClick={handleNameSave} style={{background:"#4ade80",border:"none",borderRadius:5,padding:"2px 7px",fontSize:12,fontWeight:700,cursor:"pointer",color:"#1a3a2a"}}>저장</button>
+                </div>
+              ):(
+                <span className="member-name" style={{cursor:"pointer",display:"flex",alignItems:"center",gap:4}}
+                  onClick={()=>{setNameInput(user.name);setEditingName(true);}}>
+                  {m} (나) <span style={{fontSize:10,color:"#4ade80"}}>✏️</span>
+                </span>
+              )
+            ):(
+              <span className="member-name">{m}</span>
+            )}
           </div>
         ))}
         <div className="sidebar-footer">
