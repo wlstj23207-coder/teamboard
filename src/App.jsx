@@ -96,18 +96,18 @@ const css = `
   .sidebar-footer{margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);}
   .main-content{flex:1;overflow-y:auto;padding:32px;}
   .content-layout{display:flex;gap:24px;}
-  .content-main{flex:1;min-width:0;}
+  .content-main{flex:1;min-width:0;overflow:hidden;}
   .right-panel{width:340px;flex-shrink:0;}
   .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
   .page-title{font-size:24px;font-weight:700;}
   .page-sub{font-size:14px;color:var(--text2);margin-top:2px;}
-  .kanban-board{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start;min-height:500px;width:100%;}
-  .kanban-col{background:var(--surface2);border-radius:var(--radius);padding:16px;min-height:500px;}
+  .kanban-board{display:grid;grid-template-columns:repeat(3,minmax(200px,1fr));gap:20px;align-items:start;width:100%;}
+  .kanban-col{background:var(--surface2);border-radius:var(--radius);padding:16px;height:600px;min-width:0;width:100%;}
   .col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
   .col-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;}
   .col-dot{width:8px;height:8px;border-radius:50%;}
   .col-count{background:rgba(0,0,0,0.06);border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600;}
-  .col-droppable{min-height:400px;}
+  .col-droppable{height:520px;overflow-y:auto;}
   .col-droppable.drag-over{background:rgba(99,102,241,0.05);border-radius:10px;}
   .task-card{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:grab;transition:all .15s;border:2px solid transparent;user-select:none;height:100px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
   .task-card:hover{box-shadow:0 4px 16px rgba(99,102,241,0.12);border-color:var(--border);transform:translateY(-1px);}
