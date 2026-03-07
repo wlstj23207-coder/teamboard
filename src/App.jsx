@@ -133,7 +133,7 @@ const css = `
   .calendar-day.today .calendar-day-num{color:var(--accent);}
   .calendar-task-dot{font-size:10px;padding:1px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;backdrop-filter:blur(4px);}
-  .modal{background:#fff;border-radius:20px;padding:32px;width:100%;max-width:480px;box-shadow:0 24px 64px rgba(0,0,0,0.2);animation:slideUp .2s ease;}
+  .modal{background:#fff;border-radius:20px;padding:32px;width:100%;max-width:520px;box-shadow:0 24px 64px rgba(0,0,0,0.2);animation:slideUp .2s ease;max-height:90vh;overflow-y:auto;}
   @keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
   .modal-title{font-size:20px;font-weight:700;margin-bottom:24px;}
   .select{width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:15px;outline:none;background:var(--bg);font-family:inherit;cursor:pointer;}
@@ -201,7 +201,23 @@ const css = `
     .modal{padding:24px 18px;border-radius:16px 16px 0 0;max-width:100%;margin:0;}
   }
   @media(max-width:480px){.main-content{padding:10px;}.stat-num{font-size:20px;}}
+  .comments-section{margin-top:20px;padding-top:20px;border-top:2px solid var(--border);}
+  .comments-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+  .comment-item{display:flex;gap:10px;margin-bottom:14px;}
+  .comment-body{flex:1;background:var(--surface2);border-radius:10px;padding:10px 14px;}
+  .comment-header{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .comment-author{font-size:13px;font-weight:700;color:var(--text);}
+  .comment-time{font-size:11px;color:var(--text2);}
+  .comment-text{font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap;word-break:break-all;}
+  .comment-mention{color:var(--accent);font-weight:700;}
+  .comment-input-wrap{display:flex;gap:8px;align-items:flex-end;margin-top:10px;}
+  .comment-textarea{flex:1;padding:10px 12px;border:2px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:var(--bg);resize:none;line-height:1.6;min-height:60px;}
+  .comment-textarea:focus{border-color:var(--accent);}
+  .mention-dropdown{position:absolute;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:200;min-width:160px;overflow:hidden;}
+  .mention-item{padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;}
+  .mention-item:hover{background:var(--surface2);color:var(--accent);}
 `;
+
 
 function Avatar({name}) {
   return <div className="avatar" style={{background:getAvatarColor(name),color:"#fff"}}>{(name||"?")[0].toUpperCase()}</div>;
@@ -249,7 +265,7 @@ function AuthPage({onLogin}) {
   if(step==="verify") return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">✦ TeamBoard</div>
+        <div className="auth-logo">✦ Werki</div>
         <div className="verify-box" style={{marginTop:8}}>
           <div className="verify-box-title">📬 인증 이메일을 확인해주세요!</div>
           <div className="verify-box-desc">
@@ -269,7 +285,7 @@ function AuthPage({onLogin}) {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="auth-logo">✦ TeamBoard</div>
+        <div className="auth-logo">✦ Werki</div>
         <div className="auth-subtitle">팀과 함께 일정을 관리하세요</div>
         <div className="auth-tabs">
           <button className={`auth-tab ${tab==="login"?"active":""}`} onClick={()=>{setTab("login");setError("");}}>로그인</button>
@@ -355,7 +371,7 @@ function OnboardingPage({user,onEnterBoard}) {
   return (
     <div className="onboarding-page">
       <div className="onboarding-card">
-        <div className="auth-logo" style={{marginBottom:4}}>✦ TeamBoard</div>
+        <div className="auth-logo" style={{marginBottom:4}}>✦ Werki</div>
         <div style={{fontSize:14,color:"var(--text2)",marginBottom:28}}>안녕하세요, {user.name}님 👋</div>
         {!mode?(
           <>
@@ -490,6 +506,147 @@ function PinModal({onSuccess,onClose,title="비밀번호 입력"}) {
   );
 }
 
+function formatCommentTime(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if(diff < 60) return '방금 전';
+  if(diff < 3600) return `${Math.floor(diff/60)}분 전`;
+  if(diff < 86400) return `${Math.floor(diff/3600)}시간 전`;
+  return d.toLocaleDateString('ko-KR',{month:'short',day:'numeric'});
+}
+
+function renderCommentText(text) {
+  const parts = text.split(/(@\w+)/g);
+  return parts.map((p,i) =>
+    p.startsWith('@')
+      ? <span key={i} className="comment-mention">{p}</span>
+      : p
+  );
+}
+
+function CommentSection({taskId, currentUser, members}) {
+  const [comments, setComments] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [showMention, setShowMention] = useState(false);
+  const [mentionPos, setMentionPos] = useState({top:0,left:0});
+  const textareaRef = useRef(null);
+
+  useEffect(()=>{
+    (async()=>{
+      const{data}=await supabase.from('task_comments').select().eq('task_id',taskId).order('created_at');
+      if(data) setComments(data);
+    })();
+    const sub = supabase.channel('comments:'+taskId)
+      .on('postgres_changes',{event:'*',schema:'public',table:'task_comments',filter:`task_id=eq.${taskId}`},
+        payload=>{
+          if(payload.eventType==='INSERT') setComments(p=>[...p,payload.new]);
+          if(payload.eventType==='DELETE') setComments(p=>p.filter(c=>c.id!==payload.old.id));
+        }).subscribe();
+    return()=>supabase.removeChannel(sub);
+  },[taskId]);
+
+  const handleInput = (e) => {
+    const val = e.target.value;
+    setInput(val);
+    const cursor = e.target.selectionStart;
+    const textBefore = val.slice(0, cursor);
+    const match = textBefore.match(/@(\w*)$/);
+    if(match) {
+      setMentionQuery(match[1]);
+      setShowMention(true);
+      const ta = textareaRef.current;
+      if(ta) {
+        const rect = ta.getBoundingClientRect();
+        setMentionPos({top: rect.top - 8, left: rect.left});
+      }
+    } else {
+      setShowMention(false);
+    }
+  };
+
+  const insertMention = (name) => {
+    const cursor = textareaRef.current?.selectionStart || input.length;
+    const before = input.slice(0, cursor).replace(/@\w*$/, '');
+    const after = input.slice(cursor);
+    const newVal = before + '@' + name + ' ' + after;
+    setInput(newVal);
+    setShowMention(false);
+    setTimeout(()=>textareaRef.current?.focus(), 0);
+  };
+
+  const filteredMembers = members.filter(m =>
+    m !== currentUser.name && m.toLowerCase().includes(mentionQuery.toLowerCase())
+  );
+
+  const handleSubmit = async() => {
+    const text = input.trim();
+    if(!text || loading) return;
+    setLoading(true);
+    await supabase.from('task_comments').insert({
+      task_id: taskId,
+      author: currentUser.name,
+      text
+    });
+    setInput('');
+    setLoading(false);
+  };
+
+  const handleDelete = async(id) => {
+    await supabase.from('task_comments').delete().eq('id', id);
+  };
+
+  return (
+    <div className="comments-section">
+      <div className="comments-title">💬 댓글 {comments.length > 0 && `(${comments.length})`}</div>
+      {comments.length === 0
+        ? <div style={{fontSize:13,color:'var(--text2)',textAlign:'center',padding:'10px 0'}}>아직 댓글이 없어요</div>
+        : comments.map(c=>(
+          <div key={c.id} className="comment-item">
+            <Avatar name={c.author}/>
+            <div className="comment-body">
+              <div className="comment-header">
+                <span className="comment-author">{c.author}</span>
+                <span className="comment-time">{formatCommentTime(c.created_at)}</span>
+                {c.author===currentUser.name&&(
+                  <button onClick={()=>handleDelete(c.id)}
+                    style={{marginLeft:'auto',background:'transparent',border:'none',cursor:'pointer',fontSize:12,color:'var(--text2)',padding:'0 4px'}}>🗑</button>
+                )}
+              </div>
+              <div className="comment-text">{renderCommentText(c.text)}</div>
+            </div>
+          </div>
+        ))
+      }
+      <div className="comment-input-wrap" style={{position:'relative'}}>
+        <Avatar name={currentUser.name}/>
+        <div style={{flex:1,position:'relative'}}>
+          <textarea ref={textareaRef} className="comment-textarea"
+            placeholder={"댓글을 입력하세요... (@이름 으로 멘션)"}
+            value={input} onChange={handleInput}
+            onKeyDown={e=>{
+              if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();handleSubmit();}
+              if(e.key==='Escape') setShowMention(false);
+            }}/>
+          {showMention && filteredMembers.length > 0 && (
+            <div className="mention-dropdown" style={{position:'absolute',bottom:'calc(100% + 4px)',left:0}}>
+              {filteredMembers.map(m=>(
+                <div key={m} className="mention-item" onMouseDown={e=>{e.preventDefault();insertMention(m);}}>
+                  <Avatar name={m}/> {m}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <button className="btn btn-primary btn-sm" style={{marginTop:0,height:40,alignSelf:'flex-end'}}
+          disabled={loading||!input.trim()} onClick={handleSubmit}>등록</button>
+      </div>
+    </div>
+  );
+}
+
 function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
   const [title,setTitle]=useState(task?.title||"");
   const [description,setDescription]=useState(task?.description||"");
@@ -605,12 +762,13 @@ function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
             )}
           </div>
         )}
+        {!isNew&&(
+          <CommentSection taskId={task.id} currentUser={currentUser} members={members}/>
+        )}
       </div>
     </div>
   );
-}
-
-function TaskCard({task,onEdit,onDragStart}) {
+}({task,onEdit,onDragStart}) {
   const getDueClass=()=>{
     if(!task.due)return"normal";
     if(isOverdue(task.due)&&task.status!=="done")return"overdue";
@@ -997,7 +1155,7 @@ function Dashboard({user:initialUser,board,onLogout}) {
   return (
     <div className="main-layout">
       <aside className="sidebar">
-        <div className="sidebar-logo">✦ Team<span>Board</span></div>
+        <div className="sidebar-logo">✦ Wer<span>ki</span></div>
         <div className="board-info">
           <div className="board-name">{board.name}</div>
           <div className="board-code">
