@@ -767,6 +767,7 @@ function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
 }
 
 function TaskCard({task,onEdit,onDelete,onDragStart}) {
+  const [confirmDelete,setConfirmDelete]=useState(false);
   const getDueClass=()=>{
     if(!task.due)return"normal";
     if(isOverdue(task.due)&&task.status!=="done")return"overdue";
@@ -777,16 +778,23 @@ function TaskCard({task,onEdit,onDelete,onDragStart}) {
   return (
     <div className="task-card" draggable
       onDragStart={e=>onDragStart(e,task.id)}
-      onClick={()=>onEdit(task)}>
+      onClick={()=>!confirmDelete&&onEdit(task)}>
       <div className="task-title" style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:4}}>
         <span style={{flex:1,minWidth:0}}>
           {task.pin&&<span style={{fontSize:11,marginRight:4}}>🔒</span>}
           {task.title}
         </span>
-        <button
-          onClick={e=>{e.stopPropagation();if(window.confirm("일정을 삭제할까요?"))onDelete(task.id);}}
-          style={{flexShrink:0,background:"transparent",border:"none",cursor:"pointer",fontSize:13,color:"#ccc",padding:"0 2px",lineHeight:1}}
-          title="삭제">🗑</button>
+        {confirmDelete
+          ?<div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}} onClick={e=>e.stopPropagation()}>
+             <span style={{fontSize:11,color:"#dc2626",whiteSpace:"nowrap"}}>삭제?</span>
+             <button onClick={()=>onDelete(task.id)} style={{fontSize:11,padding:"2px 6px",background:"#dc2626",color:"#fff",border:"none",borderRadius:4,cursor:"pointer"}}>확인</button>
+             <button onClick={()=>setConfirmDelete(false)} style={{fontSize:11,padding:"2px 6px",background:"#eee",border:"none",borderRadius:4,cursor:"pointer"}}>취소</button>
+           </div>
+          :<button
+             onClick={e=>{e.stopPropagation();setConfirmDelete(true);}}
+             style={{flexShrink:0,background:"transparent",border:"none",cursor:"pointer",fontSize:13,color:"#ccc",padding:"0 2px",lineHeight:1}}
+             title="삭제">🗑</button>
+        }
       </div>
       <div className="task-meta">
         <div className="task-assignee"><Avatar name={task.assignee}/><span>{task.assignee}</span></div>
