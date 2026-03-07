@@ -515,14 +515,14 @@ function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
         </div>
         {isNew&&(
           <div className="field">
-            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",whiteSpace:"nowrap"}}>
               <input type="checkbox" checked={pinSet} onChange={e=>setPinSet(e.target.checked)}/>
-              🔒 비밀번호 설정 (선택)
+              🔒 비밀번호 설정 <span style={{fontWeight:400,fontSize:12,color:"var(--text2)"}}>(선택)</span>
             </label>
-            {pinSet&&(
-              <div style={{marginTop:8}}>
-                <div style={{fontSize:12,color:"var(--text2)",marginBottom:6}}>4자리 숫자 비밀번호</div>
-                <div className="pin-input">
+            {pinSet&&(<div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{fontSize:12,color:"var(--text2)",whiteSpace:"nowrap"}}>4자리:</div>
+                <div className="pin-input" style={{margin:0}}>
                   {newPin.map((d,i)=>(
                     <input key={i} ref={pinRefs[i]} className="pin-digit" type="password" inputMode="numeric"
                       maxLength={1} value={d} onChange={e=>handleNewPinChange(i,e.target.value)}
