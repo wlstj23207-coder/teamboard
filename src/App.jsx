@@ -961,13 +961,13 @@ function Dashboard({user:initialUser,board,onLogout}) {
         <button className={`sidebar-nav-item ${view==="kanban"?"active":""}`} onClick={()=>setView("kanban")}>📋 Dash Board</button>
         <button className={`sidebar-nav-item ${view==="calendar"?"active":""}`} onClick={()=>setView("calendar")}>📅 달력 보기</button>
         <div className="sidebar-section">팀원 ({members.length})</div>
-        {members.map(m=>(
+        {members.filter(m=>m!==user.name).map(m=>(
           <div key={m} className="member-item">
             <Avatar name={m}/>
             <span className="member-name">{m}</span>
           </div>
         ))}
-        <div className="member-item" style={{marginTop:4}}>
+        <div className="member-item">
           <Avatar name={user.name}/>
           {editingName?(
             <div style={{display:"flex",gap:4,alignItems:"center",flex:1}}>
