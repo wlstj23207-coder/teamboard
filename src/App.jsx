@@ -101,8 +101,8 @@ const css = `
   .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
   .page-title{font-size:24px;font-weight:700;}
   .page-sub{font-size:14px;color:var(--text2);margin-top:2px;}
-  .kanban-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:start;width:100%;}
-  .kanban-col{background:var(--surface2);border-radius:var(--radius);padding:16px;height:600px;min-width:0;}
+  .kanban-board{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:20px;align-items:start;width:100%;}
+  .kanban-col{background:var(--surface2);border-radius:var(--radius);padding:16px;height:600px;min-width:220px;}
   .col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
   .col-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;}
   .col-dot{width:8px;height:8px;border-radius:50%;}
@@ -241,8 +241,8 @@ function AuthPage({onLogin}) {
     setLoading(false);
     if(err){setError(err.message);return;}
     const u=data.user;
-    const{data:bm}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("joined_at",{ascending:false}).limit(1).maybeSingle();
-    const uname=bm?.name||u.user_metadata?.name||u.email.split("@")[0];
+    const{data:bmList}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("created_at",{ascending:false}).limit(1);
+    const uname=(bmList&&bmList[0]?.name)||u.user_metadata?.name||u.email.split("@")[0];
     onLogin({id:u.id,email:u.email,name:uname});
   };
 
@@ -793,7 +793,7 @@ function CalendarView({tasks,onAddTask,onMonthChange,year,month,setYear,setMonth
           )}
         </div>
       )}
-      <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"var(--shadow)",border:"1.5px solid var(--border)"}}>
+      <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"var(--shadow)",border:"1.5px solid var(--border)",minWidth:480,width:"100%",boxSizing:"border-box"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
           <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===0?year-1:year;const nm=month===0?11:month-1;setYear(ny);setMonth(nm);onMonthChange&&onMonthChange(ny,nm);}}>←</button>
           <div style={{fontSize:18,fontWeight:700}}>{year}년 {month+1}월</div>
@@ -1076,8 +1076,8 @@ export default function App() {
     supabase.auth.getSession().then(async({data})=>{
       if(data.session?.user){
         const u=data.session.user;
-        const{data:bm}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("joined_at",{ascending:false}).limit(1).maybeSingle();
-        const name=bm?.name||u.user_metadata?.name||u.email.split("@")[0];
+        const{data:bmList}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("created_at",{ascending:false}).limit(1);
+        const name=(bmList&&bmList[0]?.name)||u.user_metadata?.name||u.email.split("@")[0];
         setUser({id:u.id,email:u.email,name});
         setPage("onboarding");
       } else {
