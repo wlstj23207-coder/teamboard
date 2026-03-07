@@ -579,17 +579,21 @@ function CommentSection({taskId, currentUser, members}) {
     const text = input.trim();
     if(!text || loading) return;
     setLoading(true);
-    await supabase.from('task_comments').insert({
+    const{data,error} = await supabase.from('task_comments').insert({
       task_id: taskId,
       author: currentUser.name,
       text
-    });
+    }).select().single();
+    if(!error && data) {
+      setComments(p=>[...p,data]);
+    }
     setInput('');
     setLoading(false);
   };
 
   const handleDelete = async(id) => {
-    await supabase.from('task_comments').delete().eq('id', id);
+    const{error} = await supabase.from('task_comments').delete().eq('id', id);
+    if(!error) setComments(p=>p.filter(c=>c.id!==id));
   };
 
   return (
@@ -606,7 +610,7 @@ function CommentSection({taskId, currentUser, members}) {
                 <span className="comment-time">{formatCommentTime(c.created_at)}</span>
                 {c.author===currentUser.name&&(
                   <button onClick={()=>handleDelete(c.id)}
-                    style={{marginLeft:'auto',background:'transparent',border:'none',cursor:'pointer',fontSize:12,color:'var(--text2)',padding:'0 4px'}}>🗑</button>
+                    style={{marginLeft:'auto',background:'#fef2f2',border:'1px solid #fecaca',borderRadius:6,cursor:'pointer',fontSize:11,color:'#dc2626',padding:'2px 8px',flexShrink:0}}>삭제</button>
                 )}
               </div>
               <div className="comment-text">{renderCommentText(c.text)}</div>
@@ -878,15 +882,17 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
 
   const saveTask=async(task)=>{
     if(task.id){
-      const{data}=await supabase.from("tasks")
+      const{data,error}=await supabase.from("tasks")
         .update({title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||null,status:task.status})
         .eq("id",task.id).select().single();
+      if(error){showToast("오류: "+error.message);return;}
       setTasks(p=>p.map(t=>t.id===task.id?data:t));
       showToast(task.title+" 저장됨");
     } else {
-      const{data}=await supabase.from("tasks")
+      const{data,error}=await supabase.from("tasks")
         .insert({board_id:boardId,title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||null,status:task.status,pin:task.pin||null,created_by:currentUser?.name||""})
         .select().single();
+      if(error){showToast("오류: "+error.message);return;}
       setTasks(p=>[...p,data]);
       showToast(task.title+" 추가됨");
     }
