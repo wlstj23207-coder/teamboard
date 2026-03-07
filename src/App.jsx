@@ -1064,7 +1064,7 @@ export default function App() {
     style.textContent=css;
     document.head.appendChild(style);
 
-    supabase.auth.getSession().then(({data})=>{
+    supabase.auth.getSession().then(async({data})=>{
       if(data.session?.user){
         const u=data.session.user;
         // board_members에서 최신 이름 가져오기
@@ -1077,7 +1077,7 @@ export default function App() {
       }
     });
 
-    const{data:listener}=supabase.auth.onAuthStateChange((_e,session)=>{
+    const{data:listener}=supabase.auth.onAuthStateChange(async(_e,session)=>{
       if(!session){setUser(null);setBoard(null);setPage("auth");}
     });
 
