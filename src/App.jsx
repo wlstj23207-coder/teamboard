@@ -241,8 +241,8 @@ function AuthPage({onLogin}) {
     setLoading(false);
     if(err){setError(err.message);return;}
     const u=data.user;
-    const{data:bmList}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("created_at",{ascending:false}).limit(1);
-    const uname=(bmList&&bmList[0]?.name)||u.user_metadata?.name||u.email.split("@")[0];
+    const{data:bm}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("joined_at",{ascending:false}).limit(1).maybeSingle();
+    const uname=bm?.name||u.user_metadata?.name||u.email.split("@")[0];
     onLogin({id:u.id,email:u.email,name:uname});
   };
 
@@ -1076,8 +1076,8 @@ export default function App() {
     supabase.auth.getSession().then(async({data})=>{
       if(data.session?.user){
         const u=data.session.user;
-        const{data:bmList}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("created_at",{ascending:false}).limit(1);
-        const name=(bmList&&bmList[0]?.name)||u.user_metadata?.name||u.email.split("@")[0];
+        const{data:bm}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("joined_at",{ascending:false}).limit(1).maybeSingle();
+        const name=bm?.name||u.user_metadata?.name||u.email.split("@")[0];
         setUser({id:u.id,email:u.email,name});
         setPage("onboarding");
       } else {
