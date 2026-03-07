@@ -910,7 +910,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
   const now=new Date();
   const isCurrentMonth=!calYear||(calYear===now.getFullYear()&&calMonth===now.getMonth());
   const mStr=calYear!=null?`${calYear}-${String(calMonth+1).padStart(2,"0")}`:null;
-  const displayTasks=mStr?tasks.filter(t=>!t.due||t.due.startsWith(mStr)):tasks;
+  const displayTasks=mStr?tasks.filter(t=>t.due&&t.due.startsWith(mStr)):tasks;
 
   return (
     <div>
