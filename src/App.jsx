@@ -531,7 +531,6 @@ function CommentSection({taskId, currentUser, members}) {
   const [loading, setLoading] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [showMention, setShowMention] = useState(false);
-  const [mentionPos, setMentionPos] = useState({top:0,left:0});
   const textareaRef = useRef(null);
 
   useEffect(()=>{
@@ -557,11 +556,6 @@ function CommentSection({taskId, currentUser, members}) {
     if(match) {
       setMentionQuery(match[1]);
       setShowMention(true);
-      const ta = textareaRef.current;
-      if(ta) {
-        const rect = ta.getBoundingClientRect();
-        setMentionPos({top: rect.top - 8, left: rect.left});
-      }
     } else {
       setShowMention(false);
     }
@@ -768,7 +762,9 @@ function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
       </div>
     </div>
   );
-}({task,onEdit,onDragStart}) {
+}
+
+function TaskCard({task,onEdit,onDragStart}) {
   const getDueClass=()=>{
     if(!task.due)return"normal";
     if(isOverdue(task.due)&&task.status!=="done")return"overdue";
