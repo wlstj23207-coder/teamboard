@@ -766,7 +766,7 @@ function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
   );
 }
 
-function TaskCard({task,onEdit,onDragStart}) {
+function TaskCard({task,onEdit,onDelete,onDragStart}) {
   const getDueClass=()=>{
     if(!task.due)return"normal";
     if(isOverdue(task.due)&&task.status!=="done")return"overdue";
@@ -778,9 +778,15 @@ function TaskCard({task,onEdit,onDragStart}) {
     <div className="task-card" draggable
       onDragStart={e=>onDragStart(e,task.id)}
       onClick={()=>onEdit(task)}>
-      <div className="task-title">
-        {task.pin&&<span style={{fontSize:11,marginRight:4}}>🔒</span>}
-        {task.title}
+      <div className="task-title" style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:4}}>
+        <span style={{flex:1,minWidth:0}}>
+          {task.pin&&<span style={{fontSize:11,marginRight:4}}>🔒</span>}
+          {task.title}
+        </span>
+        <button
+          onClick={e=>{e.stopPropagation();if(window.confirm("일정을 삭제할까요?"))onDelete(task.id);}}
+          style={{flexShrink:0,background:"transparent",border:"none",cursor:"pointer",fontSize:13,color:"#ccc",padding:"0 2px",lineHeight:1}}
+          title="삭제">🗑</button>
       </div>
       <div className="task-meta">
         <div className="task-assignee"><Avatar name={task.assignee}/><span>{task.assignee}</span></div>
@@ -950,6 +956,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
                 {col.map(task=>(
                   <TaskCard key={task.id} task={task}
                     onEdit={t=>{setEditingTask(t);setModalOpen(true);}}
+                    onDelete={deleteTask}
                     onDragStart={(_,id)=>setDragId(id)}/>
                 ))}
                 <button className="add-task-btn" onClick={()=>{setEditingTask({status});setModalOpen(true);}}>+ 추가</button>
@@ -1156,7 +1163,6 @@ function Dashboard({user:initialUser,board,onLogout}) {
     const taskSub=supabase.channel("tasks:"+board.id)
       .on("postgres_changes",{event:"*",schema:"public",table:"tasks",filter:`board_id=eq.${board.id}`},
         payload=>{
-          if(payload.eventType==="INSERT")setTasks(p=>p.some(t=>t.id===payload.new.id)?p:[...p,payload.new]);
           if(payload.eventType==="UPDATE")setTasks(p=>p.map(t=>t.id===payload.new.id?payload.new:t));
           if(payload.eventType==="DELETE")setTasks(p=>p.filter(t=>t.id!==payload.old.id));
         }).subscribe();
