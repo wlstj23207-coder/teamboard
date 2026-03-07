@@ -121,9 +121,9 @@ const css = `
   .task-due.normal{background:var(--surface2);color:var(--text2);}
   .add-task-btn{display:flex;align-items:center;gap:6px;width:100%;padding:10px 12px;border:2px dashed var(--border);border-radius:10px;background:transparent;color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;font-family:inherit;}
   .add-task-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
+  .calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;width:100%;}
   .calendar-header-day{text-align:center;font-size:11px;font-weight:600;color:var(--text2);padding:8px 0;}
-  .calendar-day{height:90px;border-radius:8px;padding:6px;background:#fff;border:1.5px solid var(--border);cursor:pointer;transition:background .1s;overflow:hidden;}
+  .calendar-day{height:90px;min-height:90px;border-radius:8px;padding:6px;background:#fff;border:1.5px solid var(--border);cursor:pointer;transition:background .1s;overflow:hidden;}
   .calendar-day:hover{background:#f3f2ff;}
   .calendar-day.empty{background:transparent;border-color:transparent;cursor:default;}
   .calendar-day.empty:hover{background:transparent;}
@@ -761,7 +761,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
   );
 }
 
-function CalendarView({tasks,onAddTask}) {
+function CalendarView({tasks,onAddTask,onMonthChange}) {
   const today=new Date();
   const [year,setYear]=useState(today.getFullYear());
   const [month,setMonth]=useState(today.getMonth());
@@ -792,11 +792,11 @@ function CalendarView({tasks,onAddTask}) {
           )}
         </div>
       )}
-      <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"var(--shadow)",border:"1.5px solid var(--border)"}}>
+      <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"var(--shadow)",border:"1.5px solid var(--border)",width:"100%",boxSizing:"border-box"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-          <button className="btn btn-ghost btn-sm" onClick={()=>month===0?(setMonth(11),setYear(y=>y-1)):setMonth(m=>m-1)}>←</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===0?year-1:year;const nm=month===0?11:month-1;setYear(ny);setMonth(nm);onMonthChange&&onMonthChange(ny,nm);}}>←</button>
           <div style={{fontSize:18,fontWeight:700}}>{year}년 {month+1}월</div>
-          <button className="btn btn-ghost btn-sm" onClick={()=>month===11?(setMonth(0),setYear(y=>y+1)):setMonth(m=>m+1)}>→</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===11?year+1:year;const nm=month===11?0:month+1;setYear(ny);setMonth(nm);onMonthChange&&onMonthChange(ny,nm);}}>→</button>
         </div>
         <div className="calendar-grid" style={{marginBottom:8}}>
           {["일","월","화","수","목","금","토"].map((d,di)=>(
@@ -898,6 +898,8 @@ function Dashboard({user,board,onLogout}) {
   const [calYear,setCalYear]=useState(new Date().getFullYear());
   const [calMonth,setCalMonth]=useState(new Date().getMonth());
   const [calModalDate,setCalModalDate]=useState(null);
+  const [calViewYear,setCalViewYear]=useState(new Date().getFullYear());
+  const [calViewMonth,setCalViewMonth]=useState(new Date().getMonth());
   const [editingName,setEditingName]=useState(false);
   const [nameInput,setNameInput]=useState(user.name);
 
@@ -982,7 +984,13 @@ function Dashboard({user,board,onLogout}) {
         <div className="page-header">
           <div>
             <div className="page-title">{view==="kanban"?"📋 Dash Board":"📅 달력"}</div>
-            <div className="page-sub">{board.name} · {tasks.length}개의 할 일</div>
+            {(() => {
+              const viewY=view==="calendar"?calViewYear:calYear;
+              const viewM=view==="calendar"?calViewMonth:calMonth;
+              const ms=`${viewY}-${String(viewM+1).padStart(2,"0")}`;
+              const cnt=tasks.filter(t=>t.due&&t.due.startsWith(ms)).length;
+              return <div className="page-sub">{board.name} · {viewM+1}월 {cnt}개의 할 일</div>;
+            })()}
           </div>
         </div>
         <div className="content-layout">
@@ -1005,7 +1013,7 @@ function Dashboard({user,board,onLogout}) {
           ):(
             <>
               <div className="content-main">
-                <CalendarView tasks={tasks} onAddTask={d=>setCalModalDate(d)}/>
+                <CalendarView tasks={tasks} onAddTask={d=>setCalModalDate(d)} onMonthChange={(y,m)=>{setCalViewYear(y);setCalViewMonth(m);}}/>
               </div>
               <div className="right-panel">
                 <NoticeBoard boardId={board.id} currentUser={user}/>
