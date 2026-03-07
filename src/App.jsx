@@ -541,7 +541,7 @@ function CommentSection({taskId, currentUser, members}) {
     const sub = supabase.channel('comments:'+taskId)
       .on('postgres_changes',{event:'*',schema:'public',table:'task_comments',filter:`task_id=eq.${taskId}`},
         payload=>{
-          if(payload.eventType==='INSERT') setComments(p=>[...p,payload.new]);
+          if(payload.eventType==='INSERT') setComments(p=>p.some(c=>c.id===payload.new.id)?p:[...p,payload.new]);
           if(payload.eventType==='DELETE') setComments(p=>p.filter(c=>c.id!==payload.old.id));
         }).subscribe();
     return()=>supabase.removeChannel(sub);
@@ -579,11 +579,12 @@ function CommentSection({taskId, currentUser, members}) {
     const text = input.trim();
     if(!text || loading) return;
     setLoading(true);
-    await supabase.from('task_comments').insert({
+    const{data} = await supabase.from('task_comments').insert({
       task_id: taskId,
       author: currentUser.name,
       text
-    });
+    }).select().single();
+    if(data) setComments(p=>p.some(c=>c.id===data.id)?p:[...p,data]);
     setInput('');
     setLoading(false);
   };
@@ -886,9 +887,11 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
       setTasks(p=>p.map(t=>t.id===task.id?data:t));
       showToast(task.title+" 저장됨");
     } else {
-      const{error}=await supabase.from("tasks")
-        .insert({board_id:boardId,title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||null,status:task.status,pin:task.pin||null,created_by:currentUser?.name||""});
+      const{data,error}=await supabase.from("tasks")
+        .insert({board_id:boardId,title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||null,status:task.status,pin:task.pin||null,created_by:currentUser?.name||""})
+        .select().single();
       if(error){showToast("오류: "+error.message);return;}
+      if(data) setTasks(p=>p.some(t=>t.id===data.id)?p:[...p,data]);
       showToast(task.title+" 추가됨");
     }
   };
@@ -1153,7 +1156,7 @@ function Dashboard({user:initialUser,board,onLogout}) {
     const taskSub=supabase.channel("tasks:"+board.id)
       .on("postgres_changes",{event:"*",schema:"public",table:"tasks",filter:`board_id=eq.${board.id}`},
         payload=>{
-          if(payload.eventType==="INSERT")setTasks(p=>[...p,payload.new]);
+          if(payload.eventType==="INSERT")setTasks(p=>p.some(t=>t.id===payload.new.id)?p:[...p,payload.new]);
           if(payload.eventType==="UPDATE")setTasks(p=>p.map(t=>t.id===payload.new.id?payload.new:t));
           if(payload.eventType==="DELETE")setTasks(p=>p.filter(t=>t.id!==payload.old.id));
         }).subscribe();
@@ -1263,13 +1266,14 @@ function Dashboard({user:initialUser,board,onLogout}) {
           task={{due:calModalDate,status:"todo",assignee:members[0]}}
           members={members} currentUser={user}
           onSave={async(task)=>{
-            await supabase.from("tasks").insert({
+            const{data}=await supabase.from("tasks").insert({
               board_id:board.id,title:task.title,
               description:task.description||null,
               assignee:task.assignee,due:task.due||null,
               status:task.status,pin:task.pin||null,
               created_by:user.name
-            });
+            }).select().single();
+            if(data) setTasks(p=>p.some(t=>t.id===data.id)?p:[...p,data]);
           }}
           onDelete={()=>{}}
           onClose={()=>setCalModalDate(null)}/>
