@@ -761,10 +761,8 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
   );
 }
 
-function CalendarView({tasks,onAddTask,onMonthChange}) {
+function CalendarView({tasks,onAddTask,onMonthChange,year,month,setYear,setMonth}) {
   const today=new Date();
-  const [year,setYear]=useState(today.getFullYear());
-  const [month,setMonth]=useState(today.getMonth());
   const daysInMonth=getDaysInMonth(year,month);
   const firstDay=getFirstDayOfMonth(year,month);
   const monthStr=`${year}-${String(month+1).padStart(2,"0")}`;
@@ -794,9 +792,9 @@ function CalendarView({tasks,onAddTask,onMonthChange}) {
       )}
       <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"var(--shadow)",border:"1.5px solid var(--border)",width:"100%",boxSizing:"border-box"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-          <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===0?year-1:year;const nm=month===0?11:month-1;setYear(ny);setMonth(nm);onMonthChange&&onMonthChange(ny,nm);}}>←</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===0?year-1:year;const nm=month===0?11:month-1;setYear(ny);setMonth(nm);onMonthChange(ny,nm);}}>←</button>
           <div style={{fontSize:18,fontWeight:700}}>{year}년 {month+1}월</div>
-          <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===11?year+1:year;const nm=month===11?0:month+1;setYear(ny);setMonth(nm);onMonthChange&&onMonthChange(ny,nm);}}>→</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===11?year+1:year;const nm=month===11?0:month+1;setYear(ny);setMonth(nm);onMonthChange(ny,nm);}}>→</button>
         </div>
         <div className="calendar-grid" style={{marginBottom:8}}>
           {["일","월","화","수","목","금","토"].map((d,di)=>(
@@ -905,10 +903,22 @@ function Dashboard({user,board,onLogout}) {
 
   const handleNameSave=async()=>{
     const newName=nameInput.trim();
-    if(!newName||newName===user.name){setEditingName(false);return;}
+    const oldName=user.name;
+    if(!newName||newName===oldName){setEditingName(false);return;}
+    // board_members 업데이트
     await supabase.from("board_members").update({name:newName}).eq("board_id",board.id).eq("user_id",user.id);
+    // 담당자가 나인 업무 업데이트
+    await supabase.from("tasks").update({assignee:newName}).eq("board_id",board.id).eq("assignee",oldName);
+    // 내가 등록한 업무 업데이트
+    await supabase.from("tasks").update({created_by:newName}).eq("board_id",board.id).eq("created_by",oldName);
+    // 로컬 state 업데이트
     user.name=newName;
-    setMembers(p=>p.map(m=>m===user.name?newName:m));
+    setMembers(p=>p.map(m=>m===oldName?newName:m));
+    setTasks(p=>p.map(t=>({
+      ...t,
+      assignee:t.assignee===oldName?newName:t.assignee,
+      created_by:t.created_by===oldName?newName:t.created_by
+    })));
     setEditingName(false);
   };
 
@@ -983,13 +993,15 @@ function Dashboard({user,board,onLogout}) {
       <main className="main-content">
         <div className="page-header">
           <div>
-            <div className="page-title">{view==="kanban"?"📋 Dash Board":"📅 달력"}</div>
+            {view==="kanban"
+              ?<div className="page-title">📋 Dash Board</div>
+              :<div className="page-title">📅 {calViewYear}년 {calViewMonth+1}월 달력</div>}
             {(() => {
               const viewY=view==="calendar"?calViewYear:calYear;
               const viewM=view==="calendar"?calViewMonth:calMonth;
               const ms=`${viewY}-${String(viewM+1).padStart(2,"0")}`;
               const cnt=tasks.filter(t=>t.due&&t.due.startsWith(ms)).length;
-              return <div className="page-sub">{board.name} · {viewM+1}월 {cnt}개의 할 일</div>;
+              return <div className="page-sub">{viewM+1}월 업무중점 · {cnt}개의 할 일</div>;
             })()}
           </div>
         </div>
@@ -1013,7 +1025,7 @@ function Dashboard({user,board,onLogout}) {
           ):(
             <>
               <div className="content-main">
-                <CalendarView tasks={tasks} onAddTask={d=>setCalModalDate(d)} onMonthChange={(y,m)=>{setCalViewYear(y);setCalViewMonth(m);}}/>
+                <CalendarView tasks={tasks} onAddTask={d=>setCalModalDate(d)} year={calViewYear} month={calViewMonth} setYear={setCalViewYear} setMonth={setCalViewMonth} onMonthChange={(y,m)=>{setCalViewYear(y);setCalViewMonth(m);}}/>
               </div>
               <div className="right-panel">
                 <NoticeBoard boardId={board.id} currentUser={user}/>
