@@ -317,7 +317,8 @@ function OnboardingPage({user,onEnterBoard}) {
     const{data:board,error:e1}=await supabase.from("boards")
       .insert({name:boardName,invite_code:code,created_by:user.id}).select().single();
     if(e1){setError(e1.message);setLoading(false);return;}
-    await supabase.from("board_members").upsert({board_id:board.id,user_id:user.id,name:user.name},{onConflict:"board_id,user_id"});
+    await supabase.from("board_members").select("id").eq("board_id",board.id).eq("user_id",user.id).maybeSingle();
+    if(!existing?.data){await supabase.from("board_members").insert({board_id:board.id,user_id:user.id,name:user.name});}
     setLoading(false);
     onEnterBoard({id:board.id,name:board.name,inviteCode:board.invite_code});
   };
@@ -1068,7 +1069,7 @@ export default function App() {
       if(data.session?.user){
         const u=data.session.user;
         // board_members에서 최신 이름 가져오기
-        const{data:bm}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+        const{data:bm}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("joined_at",{ascending:false}).limit(1).maybeSingle();
         const name=bm?.name||u.user_metadata?.name||u.email.split("@")[0];
         setUser({id:u.id,email:u.email,name});
         setPage("onboarding");
