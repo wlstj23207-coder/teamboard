@@ -30,6 +30,21 @@ const isRedDay=(year,month,day)=>new Date(year,month,day).getDay()===0||!!isHoli
 
 function generateInviteCode() { return String(Math.floor(100000+Math.random()*900000)); }
 function formatDate(s) { if(!s)return""; return new Date(s).toLocaleDateString("ko-KR",{month:"short",day:"numeric"}); }
+function toDateKey(value) {
+  if (!value) return "";
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    const m = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  }
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function toMonthKey(value) {
+  const dateKey = toDateKey(value);
+  return dateKey ? dateKey.slice(0, 7) : "";
+}
 function isToday(s) { return new Date(s).toDateString()===new Date().toDateString(); }
 function isThisWeek(s) {
   const today=new Date(), d=new Date(s);
@@ -929,7 +944,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
   const now=new Date();
   const isCurrentMonth=!calYear||(calYear===now.getFullYear()&&calMonth===now.getMonth());
   const mStr=calYear!=null?`${calYear}-${String(calMonth+1).padStart(2,"0")}`:null;
-  const displayTasks=mStr?tasks.filter(t=>!t.due||t.due.startsWith(mStr)):tasks;
+  const displayTasks=mStr?tasks.filter(t=>toMonthKey(t.due)===mStr):tasks;
 
   return (
     <div>
@@ -988,8 +1003,11 @@ function CalendarView({tasks,onAddTask,onMonthChange,year,month,setYear,setMonth
   const daysInMonth=getDaysInMonth(year,month);
   const firstDay=getFirstDayOfMonth(year,month);
   const monthStr=`${year}-${String(month+1).padStart(2,"0")}`;
-  const monthTasks=tasks.filter(t=>t.due&&t.due.startsWith(monthStr));
-  const getDay=d=>monthTasks.filter(t=>t.due===`${monthStr}-${String(d).padStart(2,"0")}`);
+  const monthTasks=tasks.filter(t=>toMonthKey(t.due)===monthStr);
+  const getDay=d=>{
+    const dateStr=`${monthStr}-${String(d).padStart(2,"0")}`;
+    return monthTasks.filter(t=>toDateKey(t.due)===dateStr);
+  };
   const cells=[...Array(firstDay).fill(null),...Array.from({length:daysInMonth},(_,i)=>i+1)];
   while(cells.length%7!==0)cells.push(null);
   const todayTasks=monthTasks.filter(t=>t.due&&isToday(t.due)&&t.status!=="done");
@@ -1239,7 +1257,7 @@ function Dashboard({user:initialUser,board,onLogout}) {
               const viewY=view==="calendar"?calViewYear:calYear;
               const viewM=view==="calendar"?calViewMonth:calMonth;
               const ms=`${viewY}-${String(viewM+1).padStart(2,"0")}`;
-              const cnt=tasks.filter(t=>t.due&&t.due.startsWith(ms)).length;
+              const cnt=tasks.filter(t=>toMonthKey(t.due)===ms).length;
               return <div className="page-sub">{viewM+1}월 업무중점 · {cnt}개의 할 일</div>;
             })()}
           </div>
