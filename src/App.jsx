@@ -906,6 +906,12 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
   const [editingTask,setEditingTask]=useState(null);
   const [dragId,setDragId]=useState(null);
   const [dragOver,setDragOver]=useState(null);
+  const now=new Date();
+  const defaultDue=(()=>{
+    if(calYear==null||calMonth==null)return"";
+    const day=Math.min(now.getDate(),getDaysInMonth(calYear,calMonth));
+    return `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+  })();
 
   const saveTask=async(task)=>{
     if(task.id){
@@ -918,7 +924,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
     } else {
       if(!boardId){showToast("오류: boardId 없음");return;}
       if(!currentUser){showToast("오류: 로그인 정보 없음");return;}
-      const payload={board_id:boardId,title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||null,status:task.status,pin:task.pin||null,created_by:currentUser?.name||""};
+      const payload={board_id:boardId,title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||defaultDue||null,status:task.status,pin:task.pin||null,created_by:currentUser?.name||""};
       const{data,error}=await supabase.from("tasks").insert(payload).select().single();
       if(error){showToast("추가오류: "+error.message);return;}
       if(data) setTasks(p=>p.some(t=>t.id===data.id)?p:[...p,data]);
@@ -941,7 +947,6 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
     setDragId(null);setDragOver(null);
   };
 
-  const now=new Date();
   const isCurrentMonth=!calYear||(calYear===now.getFullYear()&&calMonth===now.getMonth());
   const mStr=calYear!=null?`${calYear}-${String(calMonth+1).padStart(2,"0")}`:null;
   const displayTasks=mStr?tasks.filter(t=>toMonthKey(t.due)===mStr):tasks;
@@ -983,7 +988,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
                     onDelete={deleteTask}
                     onDragStart={(_,id)=>setDragId(id)}/>
                 ))}
-                <button className="add-task-btn" onClick={()=>{setEditingTask({status});setModalOpen(true);}}>+ 추가</button>
+                <button className="add-task-btn" onClick={()=>{setEditingTask({status,due:defaultDue});setModalOpen(true);}}>+ 추가</button>
               </div>
             </div>
           );
