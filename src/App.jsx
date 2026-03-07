@@ -298,6 +298,22 @@ function OnboardingPage({user,onEnterBoard}) {
   const [loading,setLoading]=useState(false);
   const [myBoards,setMyBoards]=useState([]);
   const [boardsLoading,setBoardsLoading]=useState(true);
+  const [deletingBoard,setDeletingBoard]=useState(null);
+  const [deletePin,setDeletePin]=useState("");
+  const [deleteError,setDeleteError]=useState("");
+  const [deleteLoading,setDeleteLoading]=useState(false);
+
+  const handleDeleteBoard=async()=>{
+    if(deletePin!=="1234"){setDeleteError("비밀번호가 틀렸습니다.");setDeletePin("");return;}
+    setDeleteLoading(true);
+    await supabase.from("tasks").delete().eq("board_id",deletingBoard.id);
+    await supabase.from("notices").delete().eq("board_id",deletingBoard.id);
+    await supabase.from("board_members").delete().eq("board_id",deletingBoard.id);
+    await supabase.from("boards").delete().eq("id",deletingBoard.id);
+    setMyBoards(p=>p.filter(b=>b.id!==deletingBoard.id));
+    setDeletingBoard(null);setDeletePin("");setDeleteError("");
+    setDeleteLoading(false);
+  };
 
   useEffect(()=>{
     (async()=>{
@@ -349,15 +365,44 @@ function OnboardingPage({user,onEnterBoard}) {
               <>
                 <div style={{fontSize:16,fontWeight:700,marginBottom:12}}>내 보드</div>
                 {myBoards.map(b=>(
-                  <button key={b.id} className="choice-btn" onClick={()=>onEnterBoard({id:b.id,name:b.name,inviteCode:b.invite_code})}>
-                    <span className="choice-icon">📋</span>
-                    <div>
-                      <div className="choice-label">{b.name}</div>
-                      <div className="choice-desc">초대코드: {b.invite_code}</div>
-                    </div>
-                  </button>
+                  <div key={b.id} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                    <button className="choice-btn" style={{flex:1,marginBottom:0}} onClick={()=>onEnterBoard({id:b.id,name:b.name,inviteCode:b.invite_code})}>
+                      <span className="choice-icon">📋</span>
+                      <div>
+                        <div className="choice-label">{b.name}</div>
+                        <div className="choice-desc">초대코드: {b.invite_code}</div>
+                      </div>
+                    </button>
+                    <button onClick={e=>{e.stopPropagation();setDeletingBoard(b);setDeletePin("");setDeleteError("");}}
+                      style={{flexShrink:0,background:"#fef2f2",border:"1.5px solid #fecaca",borderRadius:10,padding:"10px 14px",cursor:"pointer",fontSize:16,color:"#dc2626"}}>
+                      🗑
+                    </button>
+                  </div>
                 ))}
                 <div style={{borderTop:"1.5px solid var(--border)",margin:"20px 0"}}/>
+                {deletingBoard&&(
+                  <div style={{background:"#fef2f2",border:"1.5px solid #fecaca",borderRadius:12,padding:"16px 20px",marginBottom:16}}>
+                    <div style={{fontSize:14,fontWeight:700,color:"#dc2626",marginBottom:4}}>🗑 보드 삭제</div>
+                    <div style={{fontSize:13,color:"var(--text2)",marginBottom:12}}>
+                      <b style={{color:"var(--text)"}}>{deletingBoard.name}</b> 보드와 모든 일정이 영구 삭제됩니다.
+                    </div>
+                    <div style={{fontSize:13,fontWeight:600,marginBottom:6}}>삭제 비밀번호</div>
+                    <input type="password" placeholder="비밀번호 입력" value={deletePin}
+                      onChange={e=>{setDeletePin(e.target.value);setDeleteError("");}}
+                      onKeyDown={e=>e.key==="Enter"&&handleDeleteBoard()}
+                      style={{width:"100%",padding:"10px 14px",border:"2px solid #fecaca",borderRadius:8,fontSize:15,fontFamily:"inherit",outline:"none",background:"#fff",boxSizing:"border-box",marginBottom:8}}
+                      autoFocus/>
+                    {deleteError&&<div style={{fontSize:13,color:"#dc2626",marginBottom:8}}>{deleteError}</div>}
+                    <div style={{display:"flex",gap:8}}>
+                      <button className="btn btn-secondary btn-sm" style={{flex:1}}
+                        onClick={()=>{setDeletingBoard(null);setDeletePin("");setDeleteError("");}}>취소</button>
+                      <button className="btn btn-sm" style={{flex:1,background:"#dc2626",color:"#fff"}}
+                        disabled={deleteLoading} onClick={handleDeleteBoard}>
+                        {deleteLoading?"삭제 중...":"삭제 확인"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
             <div style={{fontSize:myBoards.length>0?16:22,fontWeight:700,marginBottom:8}}>{myBoards.length>0?"다른 보드":"시작하기"}</div>
