@@ -887,7 +887,8 @@ function NoticeBoard({boardId,currentUser}) {
   );
 }
 
-function Dashboard({user,board,onLogout}) {
+function Dashboard({user:initialUser,board,onLogout}) {
+  const [user,setUser]=useState(initialUser);
   const [tasks,setTasks]=useState([]);
   const [members,setMembers]=useState([]);
   const [view,setView]=useState("kanban");
@@ -899,7 +900,7 @@ function Dashboard({user,board,onLogout}) {
   const [calViewYear,setCalViewYear]=useState(new Date().getFullYear());
   const [calViewMonth,setCalViewMonth]=useState(new Date().getMonth());
   const [editingName,setEditingName]=useState(false);
-  const [nameInput,setNameInput]=useState(user.name);
+  const [nameInput,setNameInput]=useState(initialUser.name);
 
   const handleNameSave=async()=>{
     const newName=nameInput.trim();
@@ -912,7 +913,7 @@ function Dashboard({user,board,onLogout}) {
     // 내가 등록한 업무 업데이트
     await supabase.from("tasks").update({created_by:newName}).eq("board_id",board.id).eq("created_by",oldName);
     // 로컬 state 업데이트
-    user.name=newName;
+    setUser(u=>({...u,name:newName}));
     setMembers(p=>p.map(m=>m===oldName?newName:m));
     setTasks(p=>p.map(t=>({
       ...t,
