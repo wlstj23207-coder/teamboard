@@ -579,14 +579,11 @@ function CommentSection({taskId, currentUser, members}) {
     const text = input.trim();
     if(!text || loading) return;
     setLoading(true);
-    const{data,error} = await supabase.from('task_comments').insert({
+    await supabase.from('task_comments').insert({
       task_id: taskId,
       author: currentUser.name,
       text
-    }).select().single();
-    if(!error && data) {
-      setComments(p=>[...p,data]);
-    }
+    });
     setInput('');
     setLoading(false);
   };
@@ -889,11 +886,9 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
       setTasks(p=>p.map(t=>t.id===task.id?data:t));
       showToast(task.title+" 저장됨");
     } else {
-      const{data,error}=await supabase.from("tasks")
-        .insert({board_id:boardId,title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||null,status:task.status,pin:task.pin||null,created_by:currentUser?.name||""})
-        .select().single();
+      const{error}=await supabase.from("tasks")
+        .insert({board_id:boardId,title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||null,status:task.status,pin:task.pin||null,created_by:currentUser?.name||""});
       if(error){showToast("오류: "+error.message);return;}
-      setTasks(p=>[...p,data]);
       showToast(task.title+" 추가됨");
     }
   };
@@ -1038,6 +1033,7 @@ function NoticeBoard({boardId,currentUser}) {
   const [notices,setNotices]=useState([]);
   const [input,setInput]=useState("");
   const [loading,setLoading]=useState(false);
+  const [confirmClear,setConfirmClear]=useState(false);
 
   useEffect(()=>{
     (async()=>{
@@ -1062,9 +1058,26 @@ function NoticeBoard({boardId,currentUser}) {
     setLoading(false);
   };
 
+  const handleClearAll=async()=>{
+    await supabase.from("notices").delete().eq("board_id",boardId);
+    setNotices([]);
+    setConfirmClear(false);
+  };
+
   return (
     <div className="notice-box">
-      <div className="notice-box-title">📌 공통 중점 사항</div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <div className="notice-box-title" style={{marginBottom:0}}>📌 공통 중점 사항</div>
+        {notices.length>0&&(
+          confirmClear
+            ?<div style={{display:"flex",gap:6,alignItems:"center"}}>
+               <span style={{fontSize:12,color:"#dc2626"}}>전체 삭제?</span>
+               <button onClick={handleClearAll} style={{fontSize:11,padding:"2px 8px",background:"#dc2626",color:"#fff",border:"none",borderRadius:5,cursor:"pointer"}}>확인</button>
+               <button onClick={()=>setConfirmClear(false)} style={{fontSize:11,padding:"2px 8px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:5,cursor:"pointer"}}>취소</button>
+             </div>
+            :<button onClick={()=>setConfirmClear(true)} style={{fontSize:11,padding:"3px 9px",background:"#fef2f2",color:"#dc2626",border:"1px solid #fecaca",borderRadius:5,cursor:"pointer"}}>전체삭제</button>
+        )}
+      </div>
       <textarea className="notice-textarea"
         placeholder={"내용 입력\nShift+Enter 줄바꿈 / Enter 등록"}
         value={input} onChange={e=>setInput(e.target.value)}
@@ -1084,9 +1097,7 @@ function NoticeBoard({boardId,currentUser}) {
                 <button className="notice-btn" onClick={async()=>await supabase.from("notices").update({done:!n.done}).eq("id",n.id)}>
                   {n.done?"↩":"✓"}
                 </button>
-                {n.author===currentUser.name&&(
-                  <button className="notice-btn" onClick={async()=>await supabase.from("notices").delete().eq("id",n.id)}>🗑</button>
-                )}
+                <button className="notice-btn" style={{color:"#dc2626"}} onClick={async()=>await supabase.from("notices").delete().eq("id",n.id)}>🗑</button>
               </div>
             </div>
           ))}
@@ -1252,14 +1263,13 @@ function Dashboard({user:initialUser,board,onLogout}) {
           task={{due:calModalDate,status:"todo",assignee:members[0]}}
           members={members} currentUser={user}
           onSave={async(task)=>{
-            const{data}=await supabase.from("tasks").insert({
+            await supabase.from("tasks").insert({
               board_id:board.id,title:task.title,
               description:task.description||null,
               assignee:task.assignee,due:task.due||null,
               status:task.status,pin:task.pin||null,
               created_by:user.name
-            }).select().single();
-            if(data)setTasks(p=>[...p,data]);
+            });
           }}
           onDelete={()=>{}}
           onClose={()=>setCalModalDate(null)}/>
