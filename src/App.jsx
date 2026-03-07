@@ -790,7 +790,7 @@ function CalendarView({tasks,onAddTask,onMonthChange,year,month,setYear,setMonth
           )}
         </div>
       )}
-      <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"var(--shadow)",border:"1.5px solid var(--border)",width:"100%",boxSizing:"border-box"}}>
+      <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"var(--shadow)",border:"1.5px solid var(--border)",width:"440px",minWidth:"440px",boxSizing:"border-box"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
           <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===0?year-1:year;const nm=month===0?11:month-1;setYear(ny);setMonth(nm);onMonthChange(ny,nm);}}>←</button>
           <div style={{fontSize:18,fontWeight:700}}>{year}년 {month+1}월</div>
@@ -906,14 +906,10 @@ function Dashboard({user:initialUser,board,onLogout}) {
     const newName=nameInput.trim();
     const oldName=user.name;
     if(!newName||newName===oldName){setEditingName(false);return;}
-    // board_members 업데이트
     await supabase.from("board_members").update({name:newName}).eq("board_id",board.id).eq("user_id",user.id);
-    // 담당자가 나인 업무 업데이트
     await supabase.from("tasks").update({assignee:newName}).eq("board_id",board.id).eq("assignee",oldName);
-    // 내가 등록한 업무 업데이트
     await supabase.from("tasks").update({created_by:newName}).eq("board_id",board.id).eq("created_by",oldName);
-    // 로컬 state 업데이트
-    setUser(u=>({...u,name:newName}));
+    setUser(prev=>({...prev,name:newName}));
     setMembers(p=>p.map(m=>m===oldName?newName:m));
     setTasks(p=>p.map(t=>({
       ...t,
@@ -921,6 +917,7 @@ function Dashboard({user:initialUser,board,onLogout}) {
       created_by:t.created_by===oldName?newName:t.created_by
     })));
     setEditingName(false);
+    setNameInput(newName);
   };
 
   useEffect(()=>{
@@ -1070,7 +1067,10 @@ export default function App() {
     supabase.auth.getSession().then(({data})=>{
       if(data.session?.user){
         const u=data.session.user;
-        setUser({id:u.id,email:u.email,name:u.user_metadata?.name||u.email.split("@")[0]});
+        // board_members에서 최신 이름 가져오기
+        const{data:bm}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("created_at",{ascending:false}).limit(1).maybeSingle();
+        const name=bm?.name||u.user_metadata?.name||u.email.split("@")[0];
+        setUser({id:u.id,email:u.email,name});
         setPage("onboarding");
       } else {
         setPage("auth");
