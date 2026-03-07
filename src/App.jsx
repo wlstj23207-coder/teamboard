@@ -983,7 +983,7 @@ function Dashboard({user:initialUser,board,onLogout}) {
               {user.name} (나) <span style={{fontSize:10,color:"#4ade80"}}>✏️</span>
             </span>
           )}
-        </div)}
+        </div>
         <div className="sidebar-footer">
           <button className="sidebar-nav-item" onClick={onLogout}>👋 로그아웃</button>
         </div>
