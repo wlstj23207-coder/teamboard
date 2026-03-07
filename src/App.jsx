@@ -897,14 +897,15 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
       const{data,error}=await supabase.from("tasks")
         .update({title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||null,status:task.status})
         .eq("id",task.id).select().single();
-      if(error){showToast("오류: "+error.message);return;}
+      if(error){showToast("수정오류: "+error.message);return;}
       setTasks(p=>p.map(t=>t.id===task.id?data:t));
       showToast(task.title+" 저장됨");
     } else {
-      const{data,error}=await supabase.from("tasks")
-        .insert({board_id:boardId,title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||null,status:task.status,pin:task.pin||null,created_by:currentUser?.name||""})
-        .select().single();
-      if(error){showToast("오류: "+error.message);return;}
+      if(!boardId){showToast("오류: boardId 없음");return;}
+      if(!currentUser){showToast("오류: 로그인 정보 없음");return;}
+      const payload={board_id:boardId,title:task.title,description:task.description||null,assignee:task.assignee,due:task.due||null,status:task.status,pin:task.pin||null,created_by:currentUser?.name||""};
+      const{data,error}=await supabase.from("tasks").insert(payload).select().single();
+      if(error){showToast("추가오류: "+error.message);return;}
       if(data) setTasks(p=>p.some(t=>t.id===data.id)?p:[...p,data]);
       showToast(task.title+" 추가됨");
     }
