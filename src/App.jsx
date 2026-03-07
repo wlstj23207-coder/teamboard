@@ -991,4 +991,5 @@ function Dashboard({user:initialUser,board,onLogout}) {
           <button className="sidebar-nav-item" onClick={onLogout}>👋 로그아웃</button>
         </div>
       </aside>
-      <main
+      <main></main>
+      tail -20 /Users/jinkim/teamboard/src/App.jsx
