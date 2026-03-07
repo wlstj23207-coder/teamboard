@@ -929,7 +929,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
   const now=new Date();
   const isCurrentMonth=!calYear||(calYear===now.getFullYear()&&calMonth===now.getMonth());
   const mStr=calYear!=null?`${calYear}-${String(calMonth+1).padStart(2,"0")}`:null;
-  const displayTasks=mStr?tasks.filter(t=>t.due&&t.due.startsWith(mStr)):tasks;
+  const displayTasks=mStr?tasks.filter(t=>!t.due||t.due.startsWith(mStr)):tasks;
 
   return (
     <div>
@@ -988,11 +988,12 @@ function CalendarView({tasks,onAddTask,onMonthChange,year,month,setYear,setMonth
   const daysInMonth=getDaysInMonth(year,month);
   const firstDay=getFirstDayOfMonth(year,month);
   const monthStr=`${year}-${String(month+1).padStart(2,"0")}`;
-  const getDay=d=>tasks.filter(t=>t.due===`${monthStr}-${String(d).padStart(2,"0")}`);
+  const monthTasks=tasks.filter(t=>t.due&&t.due.startsWith(monthStr));
+  const getDay=d=>monthTasks.filter(t=>t.due===`${monthStr}-${String(d).padStart(2,"0")}`);
   const cells=[...Array(firstDay).fill(null),...Array.from({length:daysInMonth},(_,i)=>i+1)];
   while(cells.length%7!==0)cells.push(null);
-  const todayTasks=tasks.filter(t=>t.due&&isToday(t.due)&&t.status!=="done");
-  const weekTasks=tasks.filter(t=>t.due&&isThisWeek(t.due)&&!isToday(t.due)&&t.status!=="done");
+  const todayTasks=monthTasks.filter(t=>t.due&&isToday(t.due)&&t.status!=="done");
+  const weekTasks=monthTasks.filter(t=>t.due&&isThisWeek(t.due)&&!isToday(t.due)&&t.status!=="done");
 
   return (
     <div>
