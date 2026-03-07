@@ -317,7 +317,7 @@ function OnboardingPage({user,onEnterBoard}) {
     const{data:board,error:e1}=await supabase.from("boards")
       .insert({name:boardName,invite_code:code,created_by:user.id}).select().single();
     if(e1){setError(e1.message);setLoading(false);return;}
-    await supabase.from("board_members").insert({board_id:board.id,user_id:user.id,name:user.name});
+    await supabase.from("board_members").upsert({board_id:board.id,user_id:user.id,name:user.name},{onConflict:"board_id,user_id"});
     setLoading(false);
     onEnterBoard({id:board.id,name:board.name,inviteCode:board.invite_code});
   };
@@ -924,8 +924,8 @@ function Dashboard({user:initialUser,board,onLogout}) {
     (async()=>{
       const{data:t}=await supabase.from("tasks").select().eq("board_id",board.id).order("created_at");
       if(t)setTasks(t);
-      const{data:m}=await supabase.from("board_members").select("name").eq("board_id",board.id);
-      if(m)setMembers(m.map(x=>x.name));
+      const{data:m}=await supabase.from("board_members").select("user_id,name").eq("board_id",board.id);
+      if(m){const seen=new Set();setMembers(m.filter(x=>{if(seen.has(x.user_id))return false;seen.add(x.user_id);return true;}).map(x=>x.name));}
     })();
 
     const taskSub=supabase.channel("tasks:"+board.id)
