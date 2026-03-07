@@ -61,8 +61,8 @@ const css = `
   .verify-box-desc{font-size:13px;color:var(--text2);line-height:1.8;}
   .field{margin-bottom:16px;}
   .field label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px;}
-  .field input{width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:15px;outline:none;transition:border .2s;background:var(--bg);font-family:inherit;}
-  .field input:focus{border-color:var(--accent);background:#fff;}
+  .field input,.field textarea{width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:15px;outline:none;transition:border .2s;background:var(--bg);font-family:inherit;}
+  .field input:focus,.field textarea:focus{border-color:var(--accent);background:#fff;}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;border:none;transition:all .2s;font-family:inherit;}
   .btn-primary{background:var(--accent);color:#fff;width:100%;margin-top:8px;}
   .btn-primary:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px);}
@@ -101,7 +101,7 @@ const css = `
   .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
   .page-title{font-size:24px;font-weight:700;}
   .page-sub{font-size:14px;color:var(--text2);margin-top:2px;}
-  .kanban-board{display:grid;grid-template-columns:repeat(3,minmax(200px,1fr));gap:20px;align-items:start;width:100%;}
+  .kanban-board{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start;width:100%;}
   .kanban-col{background:var(--surface2);border-radius:var(--radius);padding:16px;height:600px;min-width:0;width:100%;}
   .col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
   .col-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;}
@@ -241,7 +241,10 @@ function AuthPage({onLogin}) {
     setLoading(false);
     if(err){setError(err.message);return;}
     const u=data.user;
-    onLogin({id:u.id,email:u.email,name:u.user_metadata?.name||email.split("@")[0]});
+    // board_members에서 최신 이름 가져오기
+    const{data:bm}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("joined_at",{ascending:false}).limit(1).maybeSingle();
+    const uname=bm?.name||u.user_metadata?.name||u.email.split("@")[0];
+    onLogin({id:u.id,email:u.email,name:uname});
   };
 
   if(step==="verify") return (
@@ -317,8 +320,8 @@ function OnboardingPage({user,onEnterBoard}) {
     const{data:board,error:e1}=await supabase.from("boards")
       .insert({name:boardName,invite_code:code,created_by:user.id}).select().single();
     if(e1){setError(e1.message);setLoading(false);return;}
-    await supabase.from("board_members").select("id").eq("board_id",board.id).eq("user_id",user.id).maybeSingle();
-    if(!existing?.data){await supabase.from("board_members").insert({board_id:board.id,user_id:user.id,name:user.name});}
+    const{data:existingMember}=await supabase.from("board_members").select("id").eq("board_id",board.id).eq("user_id",user.id).maybeSingle();
+    if(!existingMember){await supabase.from("board_members").insert({board_id:board.id,user_id:user.id,name:user.name});}
     setLoading(false);
     onEnterBoard({id:board.id,name:board.name,inviteCode:board.invite_code});
   };
@@ -328,8 +331,8 @@ function OnboardingPage({user,onEnterBoard}) {
     setLoading(true);
     const{data:board,error:e1}=await supabase.from("boards").select().eq("invite_code",inviteCode).single();
     if(e1||!board){setError("존재하지 않는 초대 코드입니다.");setLoading(false);return;}
-    await supabase.from("board_members")
-      .upsert({board_id:board.id,user_id:user.id,name:user.name},{onConflict:"board_id,user_id"});
+    const{data:existingMember}=await supabase.from("board_members").select("id").eq("board_id",board.id).eq("user_id",user.id).maybeSingle();
+    if(!existingMember){await supabase.from("board_members").insert({board_id:board.id,user_id:user.id,name:user.name});}
     setLoading(false);
     onEnterBoard({id:board.id,name:board.name,inviteCode:board.invite_code});
   };
@@ -404,15 +407,12 @@ function OnboardingPage({user,onEnterBoard}) {
   );
 }
 
-// ── PIN 입력 모달 ──────────────────────────────────────────
 function PinModal({onSuccess,onClose,title="비밀번호 입력"}) {
   const [pin,setPin]=useState(["","","",""]);
   const [error,setError]=useState(false);
   const r0=useRef(null);const r1=useRef(null);const r2=useRef(null);const r3=useRef(null);
   const refs=[r0,r1,r2,r3];
-
   useEffect(()=>{setTimeout(()=>r0.current&&r0.current.focus(),100);},[]);
-
   const handleChange=(i,v)=>{
     if(!/^\d*$/.test(v))return;
     const np=[...pin];np[i]=v.slice(-1);setPin(np);setError(false);
@@ -424,7 +424,6 @@ function PinModal({onSuccess,onClose,title="비밀번호 입력"}) {
     }
   };
   const handleKey=(i,e)=>{if(e.key==="Backspace"&&!pin[i]&&i>0)refs[i-1].current.focus();};
-
   return (
     <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal" style={{maxWidth:320,textAlign:"center"}}>
@@ -444,7 +443,6 @@ function PinModal({onSuccess,onClose,title="비밀번호 입력"}) {
   );
 }
 
-// ── 일정 모달 (비밀번호 + 권한) ───────────────────────────
 function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
   const [title,setTitle]=useState(task?.title||"");
   const [description,setDescription]=useState(task?.description||"");
@@ -463,7 +461,6 @@ function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
   const isAssignee=task?.assignee===currentUser?.name;
   const canEdit=isNew||isCreator||isAssignee;
 
-  // PIN 잠긴 상태 → PIN 모달 표시
   if(!pinUnlocked){
     return <PinModal title="일정 비밀번호" onSuccess={(code)=>{
       if(code===task.pin){setPinUnlocked(true);return true;}
@@ -515,22 +512,24 @@ function TaskModal({task,members,currentUser,onSave,onDelete,onClose}) {
         </div>
         {isNew&&(
           <div className="field">
-            <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",whiteSpace:"nowrap"}}>
-              <input type="checkbox" checked={pinSet} onChange={e=>setPinSet(e.target.checked)}/>
-              🔒 비밀번호 설정 <span style={{fontWeight:400,fontSize:12,color:"var(--text2)"}}>(선택)</span>
-            </label>
-            {pinSet&&(<div style={{display:"flex",alignItems:"center",gap:8}}>
-                <div style={{fontSize:12,color:"var(--text2)",whiteSpace:"nowrap"}}>4자리:</div>
-                <div className="pin-input" style={{margin:0}}>
-                  {newPin.map((d,i)=>(
-                    <input key={i} ref={pinRefs[i]} className="pin-digit" type="password" inputMode="numeric"
-                      maxLength={1} value={d} onChange={e=>handleNewPinChange(i,e.target.value)}
-                      onKeyDown={e=>handleNewPinKey(i,e)}/>
-                  ))}
+            <div style={{display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+              <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",userSelect:"none",whiteSpace:"nowrap"}}>
+                <input type="checkbox" checked={pinSet} onChange={e=>setPinSet(e.target.checked)}/>
+                🔒 비밀번호 설정 <span style={{fontWeight:400,fontSize:12,color:"var(--text2)"}}>(선택)</span>
+              </label>
+              {pinSet&&(
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:12,color:"var(--text2)",whiteSpace:"nowrap"}}>4자리:</span>
+                  <div style={{display:"flex",gap:6}}>
+                    {newPin.map((d,i)=>(
+                      <input key={i} ref={pinRefs[i]} className="pin-digit" type="password" inputMode="numeric"
+                        maxLength={1} value={d} onChange={e=>handleNewPinChange(i,e.target.value)}
+                        onKeyDown={e=>handleNewPinKey(i,e)}/>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
         {confirmDelete?(
@@ -793,9 +792,9 @@ function CalendarView({tasks,onAddTask,onMonthChange,year,month,setYear,setMonth
       )}
       <div style={{background:"#fff",borderRadius:16,padding:24,boxShadow:"var(--shadow)",border:"1.5px solid var(--border)",width:"440px",minWidth:"440px",boxSizing:"border-box"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:20}}>
-          <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===0?year-1:year;const nm=month===0?11:month-1;setYear(ny);setMonth(nm);onMonthChange(ny,nm);}}>←</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===0?year-1:year;const nm=month===0?11:month-1;setYear(ny);setMonth(nm);onMonthChange&&onMonthChange(ny,nm);}}>←</button>
           <div style={{fontSize:18,fontWeight:700}}>{year}년 {month+1}월</div>
-          <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===11?year+1:year;const nm=month===11?0:month+1;setYear(ny);setMonth(nm);onMonthChange(ny,nm);}}>→</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>{const ny=month===11?year+1:year;const nm=month===11?0:month+1;setYear(ny);setMonth(nm);onMonthChange&&onMonthChange(ny,nm);}}>→</button>
         </div>
         <div className="calendar-grid" style={{marginBottom:8}}>
           {["일","월","화","수","목","금","토"].map((d,di)=>(
@@ -915,10 +914,10 @@ function Dashboard({user:initialUser,board,onLogout}) {
     setTasks(p=>p.map(t=>({
       ...t,
       assignee:t.assignee===oldName?newName:t.assignee,
-      created_by:t.created_by===oldName?newName:t.created_by
+      created_by:t.created_by===oldName?newName:t.created_by,
     })));
-    setEditingName(false);
     setNameInput(newName);
+    setEditingName(false);
   };
 
   useEffect(()=>{
@@ -926,7 +925,10 @@ function Dashboard({user:initialUser,board,onLogout}) {
       const{data:t}=await supabase.from("tasks").select().eq("board_id",board.id).order("created_at");
       if(t)setTasks(t);
       const{data:m}=await supabase.from("board_members").select("user_id,name").eq("board_id",board.id);
-      if(m){const seen=new Set();setMembers(m.filter(x=>{if(seen.has(x.user_id))return false;seen.add(x.user_id);return true;}).map(x=>x.name));}
+      if(m){
+        const seen=new Set();
+        setMembers(m.filter(x=>{if(seen.has(x.user_id))return false;seen.add(x.user_id);return true;}).map(x=>x.name));
+      }
     })();
 
     const taskSub=supabase.channel("tasks:"+board.id)
@@ -989,113 +991,4 @@ function Dashboard({user:initialUser,board,onLogout}) {
           <button className="sidebar-nav-item" onClick={onLogout}>👋 로그아웃</button>
         </div>
       </aside>
-      <main className="main-content">
-        <div className="page-header">
-          <div>
-            {view==="kanban"
-              ?<div className="page-title">📋 Dash Board</div>
-              :<div className="page-title">📅 {calViewYear}년 {calViewMonth+1}월 달력</div>}
-            {(() => {
-              const viewY=view==="calendar"?calViewYear:calYear;
-              const viewM=view==="calendar"?calViewMonth:calMonth;
-              const ms=`${viewY}-${String(viewM+1).padStart(2,"0")}`;
-              const cnt=tasks.filter(t=>t.due&&t.due.startsWith(ms)).length;
-              return <div className="page-sub">{viewM+1}월 업무중점 · {cnt}개의 할 일</div>;
-            })()}
-          </div>
-        </div>
-        <div className="content-layout">
-          {view==="kanban"?(
-            <>
-              <div className="content-main">
-                <KanbanView
-                  tasks={tasks} setTasks={setTasks}
-                  members={members} boardId={board.id}
-                  showToast={setToast} currentUser={user}
-                  calYear={calYear} calMonth={calMonth}/>
-              </div>
-              <div className="right-panel">
-                <MiniCalendar tasks={tasks}
-                  onAddTask={d=>setCalModalDate(d)}
-                  onMonthChange={(y,m)=>{setCalYear(y);setCalMonth(m);}}/>
-                <NoticeBoard boardId={board.id} currentUser={user}/>
-              </div>
-            </>
-          ):(
-            <>
-              <div className="content-main">
-                <CalendarView tasks={tasks} onAddTask={d=>setCalModalDate(d)} year={calViewYear} month={calViewMonth} setYear={setCalViewYear} setMonth={setCalViewMonth} onMonthChange={(y,m)=>{setCalViewYear(y);setCalViewMonth(m);}}/>
-              </div>
-              <div className="right-panel">
-                <NoticeBoard boardId={board.id} currentUser={user}/>
-              </div>
-            </>
-          )}
-        </div>
-      </main>
-      {toast&&<Toast msg={toast} onClose={()=>setToast(null)}/>}
-      {calModalDate&&members.length>0&&(
-        <TaskModal
-          task={{due:calModalDate,status:"todo",assignee:members[0]}}
-          members={members} currentUser={user}
-          onSave={async(task)=>{
-            const{data}=await supabase.from("tasks").insert({
-              board_id:board.id,title:task.title,
-              description:task.description||null,
-              assignee:task.assignee,due:task.due||null,
-              status:task.status,pin:task.pin||null,
-              created_by:user.name
-            }).select().single();
-            if(data)setTasks(p=>[...p,data]);
-          }}
-          onDelete={()=>{}}
-          onClose={()=>setCalModalDate(null)}/>
-      )}
-    </div>
-  );
-}
-
-export default function App() {
-  const [page,setPage]=useState("loading");
-  const [user,setUser]=useState(null);
-  const [board,setBoard]=useState(null);
-
-  useEffect(()=>{
-    const style=document.createElement("style");
-    style.textContent=css;
-    document.head.appendChild(style);
-
-    supabase.auth.getSession().then(async({data})=>{
-      if(data.session?.user){
-        const u=data.session.user;
-        // board_members에서 최신 이름 가져오기
-        const{data:bm}=await supabase.from("board_members").select("name").eq("user_id",u.id).order("joined_at",{ascending:false}).limit(1).maybeSingle();
-        const name=bm?.name||u.user_metadata?.name||u.email.split("@")[0];
-        setUser({id:u.id,email:u.email,name});
-        setPage("onboarding");
-      } else {
-        setPage("auth");
-      }
-    });
-
-    const{data:listener}=supabase.auth.onAuthStateChange(async(_e,session)=>{
-      if(!session){setUser(null);setBoard(null);setPage("auth");}
-    });
-
-    return()=>{document.head.removeChild(style);listener.subscription.unsubscribe();};
-  },[]);
-
-  const handleLogout=async()=>{await supabase.auth.signOut();};
-
-  if(page==="loading")return(
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#667eea,#764ba2)"}}>
-      <div style={{color:"#fff",fontSize:18,fontWeight:600}}>⏳ 로딩 중...</div>
-    </div>
-  );
-
-  return page==="auth"
-    ?<AuthPage onLogin={u=>{setUser(u);setPage("onboarding");}}/>
-    :page==="onboarding"
-    ?<OnboardingPage user={user} onEnterBoard={b=>{setBoard(b);setPage("dashboard");}}/>
-    :<Dashboard user={user} board={board} onLogout={handleLogout}/>;
-}
+      <main
