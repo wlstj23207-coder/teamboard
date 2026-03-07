@@ -101,7 +101,7 @@ const css = `
   .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
   .page-title{font-size:24px;font-weight:700;}
   .page-sub{font-size:14px;color:var(--text2);margin-top:2px;}
-  .kanban-board{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start;min-height:500px;}
+  .kanban-board{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start;min-height:500px;width:100%;}
   .kanban-col{background:var(--surface2);border-radius:var(--radius);padding:16px;min-height:500px;}
   .col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
   .col-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;}
@@ -109,7 +109,7 @@ const css = `
   .col-count{background:rgba(0,0,0,0.06);border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600;}
   .col-droppable{min-height:400px;}
   .col-droppable.drag-over{background:rgba(99,102,241,0.05);border-radius:10px;}
-  .task-card{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:grab;transition:all .15s;border:2px solid transparent;user-select:none;}
+  .task-card{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:grab;transition:all .15s;border:2px solid transparent;user-select:none;min-height:88px;display:flex;flex-direction:column;justify-content:space-between;}
   .task-card:hover{box-shadow:0 4px 16px rgba(99,102,241,0.12);border-color:var(--border);transform:translateY(-1px);}
   .task-title{font-size:14px;font-weight:600;margin-bottom:10px;line-height:1.4;}
   .task-meta{display:flex;align-items:center;justify-content:space-between;}
@@ -708,7 +708,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
   const now=new Date();
   const isCurrentMonth=!calYear||(calYear===now.getFullYear()&&calMonth===now.getMonth());
   const mStr=calYear!=null?`${calYear}-${String(calMonth+1).padStart(2,"0")}`:null;
-  const displayTasks=mStr?tasks.filter(t=>!t.due||t.due.startsWith(mStr)):tasks;
+  const displayTasks=mStr&&!isCurrentMonth?tasks.filter(t=>t.due&&t.due.startsWith(mStr)):tasks;
 
   return (
     <div>
