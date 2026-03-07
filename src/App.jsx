@@ -109,9 +109,9 @@ const css = `
   .col-count{background:rgba(0,0,0,0.06);border-radius:20px;padding:2px 8px;font-size:12px;font-weight:600;}
   .col-droppable{min-height:400px;}
   .col-droppable.drag-over{background:rgba(99,102,241,0.05);border-radius:10px;}
-  .task-card{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:grab;transition:all .15s;border:2px solid transparent;user-select:none;min-height:88px;display:flex;flex-direction:column;justify-content:space-between;}
+  .task-card{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.06);cursor:grab;transition:all .15s;border:2px solid transparent;user-select:none;height:100px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;}
   .task-card:hover{box-shadow:0 4px 16px rgba(99,102,241,0.12);border-color:var(--border);transform:translateY(-1px);}
-  .task-title{font-size:14px;font-weight:600;margin-bottom:10px;line-height:1.4;}
+  .task-title{font-size:14px;font-weight:600;margin-bottom:6px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;flex:1;}
   .task-meta{display:flex;align-items:center;justify-content:space-between;}
   .task-assignee{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);}
   .task-due{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;}
@@ -121,9 +121,9 @@ const css = `
   .task-due.normal{background:var(--surface2);color:var(--text2);}
   .add-task-btn{display:flex;align-items:center;gap:6px;width:100%;padding:10px 12px;border:2px dashed var(--border);border-radius:10px;background:transparent;color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;font-family:inherit;}
   .add-task-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;}
   .calendar-header-day{text-align:center;font-size:11px;font-weight:600;color:var(--text2);padding:8px 0;}
-  .calendar-day{min-height:80px;border-radius:8px;padding:6px;background:#fff;border:1.5px solid var(--border);cursor:pointer;transition:background .1s;}
+  .calendar-day{height:90px;border-radius:8px;padding:6px;background:#fff;border:1.5px solid var(--border);cursor:pointer;transition:background .1s;overflow:hidden;}
   .calendar-day:hover{background:#f3f2ff;}
   .calendar-day.empty{background:transparent;border-color:transparent;cursor:default;}
   .calendar-day.empty:hover{background:transparent;}
