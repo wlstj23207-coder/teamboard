@@ -156,8 +156,15 @@ const css = `
   .modal-actions{display:flex;gap:10px;margin-top:24px;justify-content:flex-end;}
   .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
   .stat-card{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);border:1.5px solid var(--border);}
+  .stat-card.is-jumpable{cursor:pointer;transition:transform .15s ease,box-shadow .15s ease;}
+  .stat-card.is-jumpable:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(99,102,241,0.14);}
   .stat-num{font-size:32px;font-weight:700;}
   .stat-label{font-size:13px;color:var(--text2);margin-top:4px;}
+  .mobile-name-editor{display:none;align-items:center;gap:6px;}
+  .mobile-name-btn{padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;}
+  .mobile-name-input{width:120px;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;outline:none;}
+  .mobile-name-save{padding:6px 9px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;}
+  .mobile-name-cancel{padding:6px 9px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--text2);font-size:12px;cursor:pointer;}
   .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:14px 20px;border-radius:12px;font-size:14px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,0.2);animation:toastIn .3s ease;}
   @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .error-msg{color:#dc2626;font-size:13px;margin-top:8px;padding:10px 14px;background:#fef2f2;border-radius:8px;}
@@ -209,9 +216,14 @@ const css = `
     .sidebar-footer{margin-top:0;padding-top:0;border-top:none;margin-left:auto;}
     .sidebar-nav-item{padding:6px 10px;font-size:13px;margin-bottom:0;white-space:nowrap;}
     .main-content{padding:14px;}
+    .mobile-name-editor{display:flex;}
     .content-layout{flex-direction:column;}
     .right-panel{width:100%!important;}
     .kanban-board{grid-template-columns:1fr;gap:10px;}
+    .stat-grid{gap:8px;margin-bottom:16px;}
+    .stat-card{padding:12px 10px;}
+    .stat-label{font-size:12px;}
+    .stat-num{font-size:24px;}
     .modal-overlay{padding:12px;align-items:flex-end;}
     .modal{padding:24px 18px;border-radius:16px 16px 0 0;max-width:100%;margin:0;}
   }
@@ -913,6 +925,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
   const [editingTask,setEditingTask]=useState(null);
   const [dragId,setDragId]=useState(null);
   const [dragOver,setDragOver]=useState(null);
+  const columnRefs=useRef({});
   const now=new Date();
   const defaultDue=(()=>{
     if(calYear==null||calMonth==null)return"";
@@ -957,6 +970,10 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
   const isCurrentMonth=!calYear||(calYear===now.getFullYear()&&calMonth===now.getMonth());
   const mStr=calYear!=null?`${calYear}-${String(calMonth+1).padStart(2,"0")}`:null;
   const displayTasks=mStr?tasks.filter(t=>toMonthKey(t.due)===mStr):tasks;
+  const scrollToStatus=(status)=>{
+    const el=columnRefs.current[status];
+    if(el) el.scrollIntoView({behavior:"smooth",block:"start"});
+  };
 
   return (
     <div>
@@ -970,7 +987,15 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
       )}
       <div className="stat-grid">
         {Object.entries(STATUS_CONFIG).map(([k,v])=>(
-          <div className="stat-card" key={k} style={{borderTop:`3px solid ${v.color}`}}>
+          <div
+            className="stat-card is-jumpable"
+            key={k}
+            style={{borderTop:`3px solid ${v.color}`}}
+            role="button"
+            tabIndex={0}
+            onClick={()=>scrollToStatus(k)}
+            onKeyDown={e=>{if(e.key==="Enter"||e.key===" ")scrollToStatus(k);}}
+          >
             <div className="stat-num" style={{color:v.color}}>{displayTasks.filter(t=>t.status===k).length}</div>
             <div className="stat-label">{v.label}</div>
           </div>
@@ -980,7 +1005,7 @@ function KanbanView({tasks,setTasks,members,boardId,showToast,currentUser,calYea
         {Object.entries(STATUS_CONFIG).map(([status,config])=>{
           const col=displayTasks.filter(t=>t.status===status);
           return (
-            <div key={status} className="kanban-col">
+            <div key={status} className="kanban-col" ref={el=>{columnRefs.current[status]=el;}}>
               <div className="col-header">
                 <div className="col-title"><div className="col-dot" style={{background:config.color}}/>{config.label}</div>
                 <span className="col-count">{col.length}</span>
@@ -1272,6 +1297,28 @@ function Dashboard({user:initialUser,board,onLogout}) {
               const cnt=tasks.filter(t=>toMonthKey(t.due)===ms).length;
               return <div className="page-sub">{viewM+1}월 업무중점 · {cnt}개의 할 일</div>;
             })()}
+          </div>
+          <div className="mobile-name-editor">
+            {editingName?(
+              <>
+                <input
+                  className="mobile-name-input"
+                  value={nameInput}
+                  onChange={e=>setNameInput(e.target.value)}
+                  onKeyDown={e=>{
+                    if(e.key==="Enter")handleNameSave();
+                    if(e.key==="Escape"){setNameInput(user.name);setEditingName(false);}
+                  }}
+                  autoFocus
+                />
+                <button className="mobile-name-save" onClick={handleNameSave}>저장</button>
+                <button className="mobile-name-cancel" onClick={()=>{setNameInput(user.name);setEditingName(false);}}>취소</button>
+              </>
+            ):(
+              <button className="mobile-name-btn" onClick={()=>{setNameInput(user.name);setEditingName(true);}}>
+                👤 {user.name} ✏️
+              </button>
+            )}
           </div>
         </div>
         <div className="content-layout">
