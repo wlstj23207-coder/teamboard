@@ -1,0 +1,16 @@
+- generic [ref=e4]:
+  - generic [ref=e5]: ✦ Werki
+  - generic [ref=e6]: 팀과 함께 일정을 관리하세요
+  - generic [ref=e7]:
+    - button "로그인" [ref=e8] [cursor=pointer]
+    - button "회원가입" [active] [ref=e9] [cursor=pointer]
+  - generic [ref=e17]:
+    - generic [ref=e18]: 이름
+    - textbox "홍길동" [ref=e19]
+  - generic [ref=e10]:
+    - generic [ref=e11]: 이메일
+    - textbox "you@example.com" [ref=e12]
+  - generic [ref=e13]:
+    - generic [ref=e14]: 비밀번호
+    - textbox "••••••••" [ref=e15]
+  - button "계정 만들기" [ref=e20] [cursor=pointer]

@@ -1,0 +1,5 @@
+### Page
+- Page URL: http://127.0.0.1:4173/
+- Page Title: teamboard
+### Snapshot
+- [Snapshot](.playwright-cli/page-2026-03-08T18-58-58-168Z.yml)
