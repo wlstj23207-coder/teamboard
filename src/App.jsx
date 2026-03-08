@@ -166,25 +166,75 @@ function fallbackStandup({tasks=[]}){
   return {text:lines.join("\n")};
 }
 
+function buildDateKeySafe(year,month,day){
+  const y=Number(year);
+  const m=Number(month);
+  const d=Number(day);
+  if(!Number.isInteger(y)||!Number.isInteger(m)||!Number.isInteger(d)) return "";
+  const value=new Date(y,m-1,d);
+  if(value.getFullYear()!==y||value.getMonth()!==m-1||value.getDate()!==d) return "";
+  return `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+}
+
+function extractDueFromText(text){
+  const now=new Date();
+  if(/오늘/.test(text)) return {due:addDays("",0),token:"오늘"};
+  if(/내일/.test(text)) return {due:addDays("",1),token:"내일"};
+  if(/모레/.test(text)) return {due:addDays("",2),token:"모레"};
+
+  const fullDate=text.match(/\b(20\d{2})[./-]\s*(\d{1,2})[./-]\s*(\d{1,2})\b/);
+  if(fullDate){
+    const due=buildDateKeySafe(fullDate[1],fullDate[2],fullDate[3]);
+    if(due) return {due,token:fullDate[0]};
+  }
+
+  const krMonthDay=text.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일?/);
+  if(krMonthDay){
+    const due=buildDateKeySafe(now.getFullYear(),krMonthDay[1],krMonthDay[2]);
+    if(due) return {due,token:krMonthDay[0]};
+  }
+
+  const slashMonthDay=text.match(/\b(\d{1,2})[./-](\d{1,2})\b/);
+  if(slashMonthDay){
+    const due=buildDateKeySafe(now.getFullYear(),slashMonthDay[1],slashMonthDay[2]);
+    if(due) return {due,token:slashMonthDay[0]};
+  }
+
+  return {due:"",token:""};
+}
+
 function fallbackCommand({command="",members=[]}){
   const txt=(command||"").trim();
-  const isCreate=/추가|만들|생성|등록|할당|배정/.test(txt);
-  const dateMatch=txt.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
-  const due=dateMatch?.[1]||(
-    /내일/.test(txt)?addDays("",1):/모레/.test(txt)?addDays("",2):/오늘/.test(txt)?addDays("",0):""
-  );
-  const assignee=members.find(m=>txt.includes(m))||members[0]||"";
+  const isCreateKeyword=/추가|만들|생성|등록|할당|배정/.test(txt);
+  const {due,token:dueToken}=extractDueFromText(txt);
+  const sortedMembers=[...members].sort((a,b)=>b.length-a.length);
+  const assignee=sortedMembers.find(m=>txt.includes(m))||"";
   const status=/완료/.test(txt)?"done":/진행/.test(txt)?"doing":/(준비|대기|백로그)/.test(txt)?"todo":"todo";
-  const title=txt
-    .replace(/\b20\d{2}-\d{2}-\d{2}\b/g," ")
-    .replace(/(오늘|내일|모레|까지|에게|한테|담당|상태|로|으로|할당해줘|배정해줘|추가해줘|만들어줘|생성해줘|등록해줘)/g," ")
+  let title=txt;
+  if(assignee) title=title.replace(assignee," ");
+  if(dueToken) title=title.replace(dueToken," ");
+  title=title
+    .replace(/\b20\d{2}[./-]\d{1,2}[./-]\d{1,2}\b/g," ")
+    .replace(/(\d{1,2}\s*월\s*\d{1,2}\s*일?)/g," ")
+    .replace(/\b\d{1,2}[./-]\d{1,2}\b/g," ")
+    .replace(/(오늘|내일|모레|까지|담당|상태|에게|한테|으로|로|옮겨줘|이동해줘|변경해줘|할당해줘|배정해줘|추가해줘|만들어줘|생성해줘|등록해줘)/g," ")
     .replace(/\s+/g," ")
     .trim();
+
   if(/상태.*(준비|진행|완료)|옮겨|이동/.test(txt)){
     return {action:"updateStatus",targetTitle:title,status};
   }
-  if(isCreate){
-    return {action:"create",task:{title:title||"새 업무",assignee,due,status}};
+  const isCompactCreate=Boolean(title&&(assignee||due));
+  if(isCreateKeyword||isCompactCreate){
+    return {
+      action:"create",
+      task:{
+        title:title||"새 업무",
+        assignee:assignee||"",
+        due,
+        status
+      }
+    };
   }
   return {action:"unknown"};
 }
@@ -1603,11 +1653,23 @@ function Dashboard({user:initialUser,board,onLogout}) {
     const command=commandInput.trim();
     if(!command||commandLoading) return;
     setCommandLoading(true);
-    const parsed=await invokeAI(
+    const aiParsed=await invokeAI(
       "command_board",
       {command,members,tasks},
       fallbackCommand
     );
+    const localParsed=fallbackCommand({command,members,tasks});
+    let parsed=localParsed;
+    if(aiParsed?.action&&aiParsed.action!=="unknown"){
+      if(aiParsed.action==="create"){
+        parsed={
+          action:"create",
+          task:{...(localParsed.task||{}),...(aiParsed.task||{})}
+        };
+      }else{
+        parsed=aiParsed;
+      }
+    }
     let resultText="";
     if(parsed?.action==="create"){
       const t=parsed.task||{};
@@ -1615,7 +1677,7 @@ function Dashboard({user:initialUser,board,onLogout}) {
         board_id:board.id,
         title:(t.title||"새 업무").trim()||"새 업무",
         description:t.description||null,
-        assignee:members.includes(t.assignee)?t.assignee:(members[0]||user.name),
+        assignee:members.includes(t.assignee)?t.assignee:(user.name||members[0]||""),
         due:t.due||addDays("",3),
         status:Object.keys(STATUS_CONFIG).includes(t.status)?t.status:"todo",
         pin:null,
@@ -1643,7 +1705,7 @@ function Dashboard({user:initialUser,board,onLogout}) {
         }
       }
     }else{
-      resultText="명령을 이해하지 못했어요. 예: `내일 민수에게 QA 체크 추가해줘`";
+      resultText="명령을 이해하지 못했어요. 예: `유소영 3월15일 계약`";
     }
     setCommandResult(resultText);
     setToast(resultText);
@@ -1774,7 +1836,7 @@ function Dashboard({user:initialUser,board,onLogout}) {
         <div className="command-bar">
           <input
             className="command-input"
-            placeholder="자연어 명령: 예) 내일 지민에게 API 문서 정리 추가해줘"
+            placeholder="자연어 명령: 예) 유소영 3월15일 계약"
             value={commandInput}
             onChange={e=>setCommandInput(e.target.value)}
             onKeyDown={e=>{if(e.key==="Enter"&&!e.nativeEvent.isComposing){e.preventDefault();handleBoardCommand();}}}
