@@ -375,10 +375,17 @@ function OnboardingPage({user,onEnterBoard}) {
   const handleJoin=async()=>{
     if(inviteCode.length!==6){setError("6자리 코드를 입력해주세요.");return;}
     setLoading(true);
-    const{data:board,error:e1}=await supabase.from("boards").select().eq("invite_code",inviteCode).single();
-    if(e1||!board){setError("존재하지 않는 초대 코드입니다.");setLoading(false);return;}
-    await supabase.from("board_members")
-      .upsert({board_id:board.id,user_id:user.id,name:user.name},{onConflict:"board_id,user_id"});
+    const { data:board, error:e1 } = await supabase
+      .rpc("join_board_by_invite", {
+        p_invite_code: inviteCode,
+        p_member_name: user.name
+      })
+      .single();
+    if(e1||!board){
+      setError("존재하지 않는 초대 코드입니다.");
+      setLoading(false);
+      return;
+    }
     setLoading(false);
     onEnterBoard({id:board.id,name:board.name,inviteCode:board.invite_code});
   };
